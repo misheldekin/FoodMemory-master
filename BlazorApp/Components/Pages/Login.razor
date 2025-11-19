@@ -1,0 +1,547 @@
+﻿@page "/Login"
+@using Models
+@using DBL
+@inject IJSRuntime js
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+
+<div class="login-page d-flex justify-content-center align-items-center vh-100" dir="rtl">
+    <div class="login-card p-4 shadow-lg">
+        <!-- אלמנטים דקורטיביים -->
+        <div class="decoration-circle circle-1"></div>
+        <div class="decoration-circle circle-2"></div>
+        <div class="decoration-sparkle sparkle-1">🌿</div>
+
+        <div class="header-section">
+            <div class="chef-icon-wrapper">
+                <div class="chef-icon">🍴</div>
+            </div>
+            <h2 class="brand-title">ברוכים השבים!</h2>
+            <h3 class="subtitle">התחברו לעולם המתכונים שלכם 👨‍🍳</h3>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="form2Example1">כתובת אימייל</label>
+            <div class="input-wrapper">
+                <input type="email" id="form2Example1" class="form-control" @bind-value="UserEmail" placeholder="example@email.com" />
+                <span class="input-icon">📧</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label" for="form2Example2">סיסמה</label>
+            <div class="input-wrapper">
+                <input type="password" id="form2Example2" class="form-control" @bind-value="UserPassword" placeholder="••••••••" />
+                <span class="input-icon">🔒</span>
+            </div>
+        </div>
+
+        <div class="row mb-4 options-row">
+            <div class="col d-flex justify-content-center">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="form2Example31" checked />
+                    <label class="form-check-label" for="form2Example31">זכור אותי</label>
+                </div>
+            </div>
+            <div class="col text-start">
+                <a href="#!" class="forgot-link">שכחת סיסמה?</a>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-submit w-100 fw-bold" @onclick="DoLogin">
+            כניסה לאתר 🚀
+        </button>
+
+        <div class="divider-section">
+            <div class="divider-line"></div>
+            <span class="divider-text">או</span>
+            <div class="divider-line"></div>
+        </div>
+
+        <p class="bottom-text text-center">
+            עדיין לא חבר בקהילה?
+            <a href="/Register" class="register-link">הירשם עכשיו!</a>
+        </p>
+    </div>
+</div>
+
+
+<style>
+   
+
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Rubik', 'Assistant', sans-serif;
+    }
+
+    /* --- Page Background --- */
+    .login-page {
+        background-image: url('/images/picture.jpg');
+        background-size: cover; 
+        background-repeat: no-repeat;
+        background-position: center;
+        position: relative;
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* --- Login Card --- */
+    .login-card {
+        /* Used Boise color base for a warm, transparent card */
+        background: rgba(235, 227, 210, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 28px;
+        padding: 45px;
+        width: 100%;
+        max-width: 460px;
+        /* Updated shadow to use Reseda Green/Ebony for depth */
+        box-shadow: 0 25px 70px rgba(65, 72, 51, 0.15);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        /* Updated border color to a soft Sage tone */
+        border: 3px solid rgba(164, 172, 134, 0.3);
+    }
+
+    /* --- Card Decorations --- */
+    .decoration-circle {
+        position: absolute;
+        border-radius: 50%;
+        z-index: 0;
+        animation: float 7s ease-in-out infinite;
+    }
+
+    .circle-1 {
+        top: -40px;
+        right: -40px;
+        width: 140px;
+        height: 140px;
+        /* Sage to Reseda Green gradient */
+        background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+        opacity: 0.3;
+    }
+
+    .circle-2 {
+        bottom: -50px;
+        left: -50px;
+        width: 170px;
+        height: 170px;
+        /* Reseda Green to Ebony gradient */
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        opacity: 0.2;
+        animation-delay: 3s;
+    }
+
+    .decoration-sparkle {
+        position: absolute;
+        font-size: 28px;
+        z-index: 0;
+        animation: sparkle 3s ease-in-out infinite;
+        opacity: 0.7;
+        color: #737A5D; /* Set color for the emoji */
+    }
+
+    .sparkle-1 {
+        top: 60px;
+        left: 30px;
+        animation-delay: 0.5s;
+    }
+
+    .sparkle-2 {
+        bottom: 80px;
+        right: 40px;
+        animation-delay: 1.5s;
+    }
+
+    .login-card > *:not(.decoration-circle):not(.decoration-sparkle) {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* --- Header & Icon --- */
+    .header-section {
+        margin-bottom: 35px;
+    }
+
+    .chef-icon-wrapper {
+        /* Reseda Green to Ebony gradient for richness */
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        border-radius: 50%;
+        width: 90px;
+        height: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+        /* Shadow using the dark primary color */
+        box-shadow: 0 10px 25px rgba(65, 72, 51, 0.4);
+        animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    .chef-icon {
+        font-size: 45px;
+        filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .brand-title {
+        /* Primary Dark color for main title */
+        color: #414833;
+        font-size: 34px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .subtitle {
+        /* Medium Accent color for sub-title */
+        color: #737A5D;
+        font-size: 20px;
+        font-weight: 500;
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    /* --- Form Elements --- */
+    .form-label {
+        color: #414833; /* Darker label text */
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: block;
+        text-align: right;
+        width: 100%;
+        padding-right: 8px;
+    }
+
+    .input-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    input.form-control {
+        /* Initial border set to Boise (lightest color) for subtle look */
+        border: 2px solid #EBE3D2;
+        border-radius: 14px;
+        padding: 15px 50px 15px 18px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        /* Background uses Boise with opacity */
+        background-color: whitesmoke;
+        text-align: right;
+        direction: rtl;
+        width: 80%;
+    }
+
+        input.form-control::placeholder {
+            color: #A4AC86; /* Sage for placeholder */
+            opacity: 0.8;
+        }
+
+        input.form-control:focus {
+            /* Focus uses Reseda Green as the accent color */
+            border-color: #737A5D;
+            background-color: #ffffff;
+            /* Soft shadow using Sage */
+            box-shadow: 0 0 0 4px rgba(164, 172, 134, 0.3);
+            outline: none;
+            transform: translateY(-2px);
+        }
+
+    .input-icon {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* --- Options Row --- */
+    .options-row {
+        margin-bottom: 25px;
+    }
+
+    .form-check {
+        gap: 8px;
+    }
+
+    .form-check-input {
+        /* Checkbox border uses Reseda Green */
+        border: 2px solid #737A5D;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+        .form-check-input:checked {
+            /* Checkbox fill uses Reseda Green */
+            background-color: #737A5D;
+            border-color: #737A5D;
+        }
+
+    .form-check-label {
+        color: #546E7A;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .forgot-link {
+        /* Link color uses Ebony for strong contrast */
+        color: #414833;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+        .forgot-link:hover {
+            /* Hover link uses Reseda Green */
+            color: #737A5D;
+            text-decoration: underline;
+        }
+
+    /* --- Submit Button --- */
+    .btn-submit {
+        /* Button Gradient: Reseda Green to Ebony */
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 14px;
+        padding: 17px;
+        font-size: 19px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        /* Shadow uses the dark color for depth */
+        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-submit:hover::before {
+            width: 350px;
+            height: 350px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-4px);
+            /* Hover Gradient: Sage to Reseda Green (lighter) */
+            box-shadow: 0 12px 30px rgba(65, 72, 51, 0.45);
+            background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+        }
+
+        .btn-submit:active {
+            transform: translateY(-1px);
+        }
+
+    /* --- Divider --- */
+    .divider-section {
+        margin: 25px 0;
+        gap: 15px;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #CCBFA3, transparent); /* Dune color */
+    }
+
+    .divider-text {
+        color: #78909C;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    /* --- Bottom Text --- */
+    .bottom-text {
+        color: #546E7A;
+        font-size: 15px;
+        margin: 0;
+    }
+
+    .register-link {
+        /* Link color uses Ebony for strong contrast */
+        color: #414833;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+        .register-link:hover {
+            /* Hover link uses Reseda Green */
+            color: #737A5D;
+            text-decoration: underline;
+        }
+
+    /* --- Custom Alert Styles (Replaces alert()) --- */
+    .custom-alert-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .custom-alert-box {
+        background-color: #EBE3D2; /* Boise background */
+        color: #414833; /* Ebony text */
+        border-radius: 16px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 10px 30px rgba(65, 72, 51, 0.5);
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .error-title {
+        color: #414833; /* Ebony for title */
+        font-weight: 700;
+    }
+
+    .btn-close-alert {
+        background-color: #737A5D; /* Reseda Green button */
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+        .btn-close-alert:hover {
+            background-color: #414833; /* Ebony hover */
+        }
+
+    /* --- Keyframes --- */
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.03); /* Slightly less dramatic pulse */
+        }
+    }
+
+    @@keyframes sparkle {
+      
+
+        50% {
+            transform: scale(1.2) rotate(180deg);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    /* --- Media Query --- */
+    @@media (max-width: 480px) {
+        .login-card {
+            padding: 35px 25px !important;
+        }
+
+        .brand-title {
+            font-size: 28px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+        }
+        /* Reduced sizes for better mobile fit */
+        .chef-icon-wrapper {
+            width: 75px;
+            height: 75px;
+        }
+
+        .chef-icon {
+            font-size: 38px;
+        }
+
+        .circle-1 {
+            width: 100px;
+            height: 100px;
+        }
+
+        .circle-2 {
+            width: 120px;
+            height: 120px;
+        }
+
+        .decoration-sparkle {
+            font-size: 22px;
+        }
+    }
+</style>
+
+
+// זהו הקוד הקיים שלך:
+@code {
+    private string UserEmail = "";
+    private string UserPassword = "";
+    async Task DoLogin()
+    {
+        CustomerDB customerDB = new CustomerDB();
+        Customers c = await customerDB.LoginAsync(UserEmail, UserPassword);
+
+        if (c != null)
+        {
+            await MySession.SetAsync("customerid", c.CustomerID);  
+            await MySession.SetAsync("firstname", c.Name);
+            await MySession.SetAsync("email", c.Email);
+            await MySession.SetAsync("profilepic", c.ProfileImage);
+
+            string profileUrl = !string.IsNullOrEmpty(c.ProfileImage) ?
+                                c.ProfileImage :
+                                "/images/defultpic.jpg";
+
+            await MySession.SetAsync("profilepic", profileUrl);
+            navigationManager.NavigateTo("/AfterLog");
+        }
+    }
+}

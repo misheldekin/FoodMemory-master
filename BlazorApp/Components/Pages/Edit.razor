@@ -1,0 +1,721 @@
+﻿@page "/UpdateProfile"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Forms
+@using DBL
+@using Models
+@inject ProtectedSessionStorage MySession
+@inject NavigationManager navigationManager
+@inject IWebHostEnvironment Environment
+
+<div class="profile-screen">
+    <header class="header">
+        <div class="header-content">
+            <button class="back-btn" @onclick="GoBack">חזרה</button>
+            <h1>עדכון פרופיל</h1>
+        </div>
+    </header>
+
+    <main class="profile-content">
+        @if (isLoading)
+        {
+            <div class="loading">טוען נתונים...</div>
+        }
+        else if (currentCustomer == null)
+        {
+            <div class="error-message">לא נמצאו פרטי משתמש. אנא התחבר מחדש.</div>
+        }
+        else
+        {
+            <div class="profile-container">
+                <!-- תמונת פרופיל -->
+                <div class="profile-section">
+                    <div class="profile-image-container">
+                        <img src="@currentCustomer.ProfileImage" alt="תמונת פרופיל" class="current-profile-image">
+                    </div>
+                    <div class="edit-section">
+                        <h3>עדכון תמונת פרופיל</h3>
+
+                        <!-- העלאת קובץ -->
+                        <div class="upload-section">
+                            <InputFile OnChange="@LoadProfileImage" accept="image/*" class="file-input" />
+                            <p class="upload-note">גודל מקסימלי: @(maxFileSize / 1024 / 1024) MB</p>
+                            @if (isUploading)
+                            {
+                                <p class="uploading-message">מעלה תמונה...</p>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(imageMessage))
+                        {
+                            <p class="message @imageMessageClass">@imageMessage</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- שם פרטי -->
+                <div class="profile-section">
+                    <div class="info-display">
+                        <label>שם פרטי נוכחי:</label>
+                        <span class="current-value">@currentCustomer.Name</span>
+                    </div>
+                    <div class="edit-section">
+                        <h3>עדכון שם פרטי</h3>
+                        <input type="text" @bind="newFirstName" placeholder="שם פרטי חדש" class="input-field" />
+                        <button class="update-btn" @onclick="UpdateFirstName" disabled="@isUpdating">
+                            @if (isUpdating)
+                            {
+                                <span>מעדכן...</span>
+                            }
+                            else
+                            {
+                                <span>עדכן שם</span>
+                            }
+                        </button>
+                        @if (!string.IsNullOrEmpty(nameMessage))
+                        {
+                            <p class="message @nameMessageClass">@nameMessage</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- שם משפחה -->
+                <div class="profile-section">
+                    <div class="info-display">
+                        <label>שם משפחה נוכחי:</label>
+                        <span class="current-value">@currentCustomer.LastName</span>
+                    </div>
+                    <div class="edit-section">
+                        <h3>עדכון שם משפחה</h3>
+                        <input type="text" @bind="newLastName" placeholder="שם משפחה חדש" class="input-field" />
+                        <button class="update-btn" @onclick="UpdateLastName" disabled="@isUpdating">
+                            @if (isUpdating)
+                            {
+                                <span>מעדכן...</span>
+                            }
+                            else
+                            {
+                                <span>עדכן שם משפחה</span>
+                            }
+                        </button>
+                        @if (!string.IsNullOrEmpty(lastNameMessage))
+                        {
+                            <p class="message @lastNameMessageClass">@lastNameMessage</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- אימייל -->
+                <div class="profile-section">
+                    <div class="info-display">
+                        <label>אימייל נוכחי:</label>
+                        <span class="current-value">@currentCustomer.Email</span>
+                    </div>
+                    <div class="edit-section">
+                        <input type="email" @bind="newEmail" placeholder="עדכון אימייל" class="input-field" />
+                        <button class="update-btn" @onclick="UpdateEmail" disabled="@isUpdating">
+                            @if (isUpdating)
+                            {
+                                <span>מעדכן...</span>
+                            }
+                            else
+                            {
+                                <span>עדכן אימייל</span>
+                            }
+                        </button>
+                        @if (!string.IsNullOrEmpty(emailMessage))
+                        {
+                            <p class="message @emailMessageClass">@emailMessage</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- סיסמה -->
+                <div class="profile-section">
+                    <div class="edit-section full-width">
+                        <h3>עדכון סיסמה</h3>
+                        <input type="password" @bind="currentPassword" placeholder="סיסמה נוכחית" class="input-field" />
+                        <input type="password" @bind="newPassword" placeholder="סיסמה חדשה" class="input-field" />
+                        <input type="password" @bind="confirmPassword" placeholder="אימות סיסמה חדשה" class="input-field" />
+                        <button class="update-btn" @onclick="UpdatePassword" disabled="@isUpdating">
+                            @if (isUpdating)
+                            {
+                                <span>מעדכן...</span>
+                            }
+                            else
+                            {
+                                <span>עדכן סיסמה</span>
+                            }
+                        </button>
+                        @if (!string.IsNullOrEmpty(passwordMessage))
+                        {
+                            <p class="message @passwordMessageClass">@passwordMessage</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </main>
+</div>
+
+<style>
+    .profile-screen {
+        min-height: 100vh;
+        background-color: #f7f3ed;
+        font-family: Arial, sans-serif;
+        direction: rtl;
+        text-align: right;
+    }
+
+    .header {
+        background-color: white;
+        padding: 20px 40px;
+        border-bottom: 1px solid #eee;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+        .header-content h1 {
+            font-size: 1.8em;
+            color: #333;
+            margin: 0;
+        }
+
+    .back-btn {
+        background-color: #457b9d;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+        .back-btn:hover {
+            background-color: #386782;
+        }
+
+    .profile-content {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .loading, .error-message {
+        text-align: center;
+        padding: 40px;
+        font-size: 1.2em;
+        color: #555;
+    }
+
+    .error-message {
+        color: #721c24;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+    }
+
+    .profile-container {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .profile-section {
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .profile-image-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .current-profile-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #6a994e;
+    }
+
+    .info-display {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .info-display label {
+            font-weight: bold;
+            color: #555;
+        }
+
+    .current-value {
+        color: #333;
+        font-size: 1.1em;
+    }
+
+    .edit-section {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+        .edit-section.full-width {
+            width: 100%;
+        }
+
+        .edit-section h3 {
+            margin: 0 0 10px 0;
+            color: #457b9d;
+            font-size: 1.3em;
+        }
+
+    .upload-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .file-input {
+        padding: 10px;
+        border: 2px dashed #457b9d;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .file-input:hover {
+            background-color: #e9ecef;
+            border-color: #6a994e;
+        }
+
+    .upload-note {
+        font-size: 0.9em;
+        color: #666;
+        margin: 0;
+    }
+
+    .uploading-message {
+        color: #457b9d;
+        font-weight: 500;
+        margin: 5px 0;
+    }
+
+    .input-field {
+        padding: 12px 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #457b9d;
+        }
+
+    .update-btn {
+        background-color: #6a994e;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: bold;
+        transition: background-color 0.3s;
+        align-self: flex-start;
+    }
+
+        .update-btn:hover:not(:disabled) {
+            background-color: #588242;
+        }
+
+        .update-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+    .message {
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-weight: 500;
+        margin-top: 10px;
+    }
+
+    .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    @@media (max-width: 768px) {
+        .profile-content {
+            margin: 20px auto;
+        }
+
+        .profile-section {
+            padding: 20px;
+        }
+
+        .upload-section {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+
+@code {
+    private CustomerDB customerDB = new CustomerDB();
+    private Customers currentCustomer;
+    private bool isLoading = true;
+    private bool isUpdating = false;
+    private bool isUploading = false;
+
+    private long maxFileSize = 1024 * 1024 * 2; // 2MB
+    private string newFirstName = "";
+    private string newLastName = "";
+    private string newEmail = "";
+    private string currentPassword = "";
+    private string newPassword = "";
+    private string confirmPassword = "";
+
+    private string imageMessage = "";
+    private string nameMessage = "";
+    private string lastNameMessage = "";
+    private string emailMessage = "";
+    private string passwordMessage = "";
+
+    private string imageMessageClass = "";
+    private string nameMessageClass = "";
+    private string lastNameMessageClass = "";
+    private string emailMessageClass = "";
+    private string passwordMessageClass = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var resultId = await MySession.GetAsync<int>("customerid");
+
+            if (!resultId.Success || resultId.Value == 0)
+            {
+                navigationManager.NavigateTo("/Login");
+                return;
+            }
+
+            currentCustomer = await customerDB.SelectByPkAsync(resultId.Value);
+
+            if (currentCustomer == null)
+            {
+                navigationManager.NavigateTo("/Login");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading profile: {ex.Message}");
+            currentCustomer = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProfileImage(InputFileChangeEventArgs e)
+    {
+        ClearMessages();
+        isUploading = true;
+
+        try
+        {
+            var file = e.File;
+
+            // בדיקת סוג הקובץ
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                imageMessage = "אנא בחר קובץ תמונה בלבד";
+                imageMessageClass = "error";
+                return;
+            }
+
+            // יצירת שם קובץ אקראי
+            string newFileName = Path.ChangeExtension(
+                Path.GetRandomFileName(),
+                Path.GetExtension(file.Name)
+            );
+
+            // יצירת תיקיית images אם לא קיימת
+            string imagesPath = Path.Combine(Environment.WebRootPath, "images");
+            if (!Directory.Exists(imagesPath))
+            {
+                Directory.CreateDirectory(imagesPath);
+            }
+
+            string path = Path.Combine(imagesPath, newFileName);
+
+            // שמירת הקובץ
+            using (FileStream fs = new FileStream(path, FileMode.Create))
+            {
+                await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+            }
+
+            // עדכון בסיס הנתונים
+            string imageUrl = $"/images/{newFileName}";
+            isUpdating = true;
+            int result = await customerDB.UpdateProfileImageAsync(currentCustomer.CustomerID, imageUrl);
+
+            if (result > 0)
+            {
+                currentCustomer.ProfileImage = imageUrl;
+                await MySession.SetAsync("profilepic", imageUrl);
+                imageMessage = "תמונת הפרופיל עודכנה בהצלחה!";
+                imageMessageClass = "success";
+            }
+            else
+            {
+                imageMessage = "אירעה שגיאה בעדכון התמונה";
+                imageMessageClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            imageMessage = $"שגיאה: {ex.Message}";
+            imageMessageClass = "error";
+        }
+        finally
+        {
+            isUploading = false;
+            isUpdating = false;
+        }
+    }
+
+    private async Task UpdateFirstName()
+    {
+        ClearMessages();
+
+        if (string.IsNullOrWhiteSpace(newFirstName))
+        {
+            nameMessage = "אנא הזן שם פרטי";
+            nameMessageClass = "error";
+            return;
+        }
+
+        try
+        {
+            isUpdating = true;
+            int result = await customerDB.UpdateFirstNameAsync(currentCustomer.CustomerID, newFirstName);
+
+            if (result > 0)
+            {
+                currentCustomer.Name = newFirstName;
+                await MySession.SetAsync("firstname", newFirstName);
+                nameMessage = "השם הפרטי עודכן בהצלחה!";
+                nameMessageClass = "success";
+                newFirstName = "";
+            }
+            else
+            {
+                nameMessage = "אירעה שגיאה בעדכון השם";
+                nameMessageClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            nameMessage = $"שגיאה: {ex.Message}";
+            nameMessageClass = "error";
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task UpdateLastName()
+    {
+        ClearMessages();
+
+        if (string.IsNullOrWhiteSpace(newLastName))
+        {
+            lastNameMessage = "אנא הזן שם משפחה";
+            lastNameMessageClass = "error";
+            return;
+        }
+
+        try
+        {
+            isUpdating = true;
+            int result = await customerDB.UpdateLastNameAsync(currentCustomer.CustomerID, newLastName);
+
+            if (result > 0)
+            {
+                currentCustomer.LastName = newLastName;
+                await MySession.SetAsync("lastname", newLastName);
+                lastNameMessage = "שם המשפחה עודכן בהצלחה!";
+                lastNameMessageClass = "success";
+                newLastName = "";
+            }
+            else
+            {
+                lastNameMessage = "אירעה שגיאה בעדכון שם המשפחה";
+                lastNameMessageClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            lastNameMessage = $"שגיאה: {ex.Message}";
+            lastNameMessageClass = "error";
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task UpdateEmail()
+    {
+        ClearMessages();
+
+        if (string.IsNullOrWhiteSpace(newEmail))
+        {
+            emailMessage = "אנא הזן כתובת אימייל";
+            emailMessageClass = "error";
+            return;
+        }
+
+        if (!newEmail.Contains("@") || !newEmail.Contains("."))
+        {
+            emailMessage = "כתובת האימייל אינה תקינה";
+            emailMessageClass = "error";
+            return;
+        }
+
+        try
+        {
+            isUpdating = true;
+            int result = await customerDB.UpdateEmailAsync(currentCustomer.CustomerID, newEmail);
+
+            if (result > 0)
+            {
+                currentCustomer.Email = newEmail;
+                await MySession.SetAsync("email", newEmail);
+                emailMessage = "האימייל עודכן בהצלחה!";
+                emailMessageClass = "success";
+                newEmail = "";
+            }
+            else
+            {
+                emailMessage = "אירעה שגיאה בעדכון האימייל";
+                emailMessageClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            emailMessage = $"שגיאה: {ex.Message}";
+            emailMessageClass = "error";
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task UpdatePassword()
+    {
+        ClearMessages();
+
+        if (string.IsNullOrWhiteSpace(currentPassword))
+        {
+            passwordMessage = "אנא הזן את הסיסמה הנוכחית";
+            passwordMessageClass = "error";
+            return;
+        }
+
+        if (currentPassword != currentCustomer.Password)
+        {
+            passwordMessage = "הסיסמה הנוכחית שגויה";
+            passwordMessageClass = "error";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            passwordMessage = "אנא הזן סיסמה חדשה";
+            passwordMessageClass = "error";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            passwordMessage = "הסיסמאות אינן תואמות";
+            passwordMessageClass = "error";
+            return;
+        }
+
+        try
+        {
+            isUpdating = true;
+            int result = await customerDB.UpdatePasswordAsync(currentCustomer.CustomerID, newPassword);
+
+            if (result > 0)
+            {
+                currentCustomer.Password = newPassword;
+                await MySession.SetAsync("password", newPassword);
+                passwordMessage = "הסיסמה עודכנה בהצלחה!";
+                passwordMessageClass = "success";
+                currentPassword = "";
+                newPassword = "";
+                confirmPassword = "";
+            }
+            else
+            {
+                passwordMessage = "אירעה שגיאה בעדכון הסיסמה";
+                passwordMessageClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordMessage = $"שגיאה: {ex.Message}";
+            passwordMessageClass = "error";
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        imageMessage = nameMessage = lastNameMessage = emailMessage = passwordMessage = "";
+    }
+
+    private void GoBack()
+    {
+        navigationManager.NavigateTo("/AfterLog");
+    }
+}

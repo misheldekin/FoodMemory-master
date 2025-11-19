@@ -1,0 +1,357 @@
+﻿@page "/Register"
+@using Models
+@using DBL
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+
+<div class="register-page d-flex justify-content-center align-items-center vh-100" dir="rtl">
+    <div class="register-card p-4 shadow-lg">
+        <!-- אלמנטים דקורטיביים -->
+        <div class="decoration-circle circle-1"></div>
+        <div class="decoration-circle circle-2"></div>
+
+        <div class="header-section">
+            <div class="chef-icon-wrapper">
+                <div class="chef-icon">👨‍🍳</div>
+            </div>
+            <h2 class="brand-title">הרשמה לאתר המתכונים</h2>
+            <h3 class="subtitle">הצטרפו לקהילה הבשלנית שלנו 🍳</h3>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">שם פרטי</label>
+            <input @bind="Name" class="form-control" placeholder="" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">שם משפחה</label>
+            <input @bind="LastName" class="form-control" placeholder="" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">אימייל</label>
+            <input @bind="Email" type="email" class="form-control" placeholder="" />
+        </div>
+
+        <div class="mb-4 position-relative">
+            <label class="form-label">סיסמה</label>
+            <input @bind="Password1" type="password" class="form-control" placeholder="" />
+        </div>
+
+        <button type="button" class="btn btn-submit w-100 fw-bold" @onclick="registration">
+            הרשם עכשיו! ✨
+        </button>
+
+        <p class="bottom-text text-center mt-3">הצטרפו לקהילת הבישול שלנו והתחילו ליצור מתכונים מדהימים.</p>
+
+        <p class="mt-3 text-center text-danger">@Message</p>
+    </div>
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Rubik', 'Assistant', sans-serif;
+    }
+
+    .register-page { /* הקוד הזה בונה את כל הרקע מאחורה עם תמונה צבעים... */
+        background: linear-gradient(135deg, #f5e6d3 0%, #d4a574 50%, #a67c52 100%);
+        background-image: url('/images/picture.jpg');
+        background-size: 100% auto;
+        background-repeat: no-repeat;
+        background-position: top center;
+        background-color: #f5e6d3;
+        position: relative;
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .register-card { /* הקוד הזה בונה את הכרטיס והעיצוב שלו */
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 40px;
+        width: 100%;
+        max-width: 440px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        border: 3px solid rgba(255, 140, 66, 0.2);
+    }
+
+    /* אלמנטים דקורטיביים - עיגולים */
+    .decoration-circle {
+        position: absolute;
+        border-radius: 50%;
+        z-index: 0;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .circle-1 {
+        top: -30px;
+        right: -30px;
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        opacity: 0.3;
+    }
+
+    .circle-2 {
+        bottom: -40px;
+        left: -40px;
+        width: 150px;
+        height: 150px;
+        background: linear-gradient(135deg, #FF8C42 0%, #D14545 100%);
+        opacity: 0.2;
+        animation-delay: 2s;
+    }
+
+    .register-card > *:not(.decoration-circle):not(.decoration-utensil) {
+        position: relative;
+        z-index: 1;
+    }
+    /*     זה אומר שים את כל התוכן של הכרטיס מעל האלמנטים הדקורטיביים כדי שהעיצוב לא יכסה עליו*/
+
+    .header-section { /* מסדר את כל הטקסט לפי מה שכתוב אם זה באמצע אנכית.. */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .chef-icon-wrapper { /* יוצרת מעגל צבעוני ומרשים, במרכזו האייקון של השף, עם צל ואנימציה */
+        background: linear-gradient(135deg, #FF8C42 0%, #D14545 100%);
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        box-shadow: 0 8px 20px rgba(255, 140, 66, 0.4);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .chef-icon {
+        font-size: 40px;
+    }
+
+    .brand-title { /* עיצוב הכותרת הראשית */
+        color: #FF8C42;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        letter-spacing: -0.5px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .subtitle {
+        color: #FF8C42;
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .form-label {
+        color: #2D3748;
+        font-size: 15px;
+        font-weight: 500;
+        margin-bottom: 8px;
+        display: block;
+        text-align: center;
+        width: 100%;
+    }
+
+    input.form-control { /* הקטע הזה עוסק ב־עיצוב שדות הטופס */
+        border: 2px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background-color: rgba(247, 250, 252, 0.9);
+        text-align: center;
+        direction: rtl;
+        position: relative;
+    }
+
+        input.form-control:focus {
+            border-color: #FF8C42;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+            outline: none;
+            transform: translateY(-2px);
+        }
+
+    .position-relative {
+        position: relative;
+    }
+
+    .lock-icon {
+        position: absolute;
+        left: 16px;
+        bottom: 14px;
+        font-size: 18px;
+        opacity: 0.5;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #FF8C42 0%, #D14545 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-submit:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 140, 66, 0.5);
+            background: linear-gradient(135deg, #FF9852 0%, #E15555 100%);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+    .bottom-text {
+        color: #718096;
+        font-size: 13px;
+        margin-top: 16px;
+        text-align: center;
+    }
+
+    .text-danger {
+        color: #E53E3E !important;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    /* אנימציות */
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+
+    @@keyframes rotate-gentle {
+        0%, 100% {
+            transform: rotate(-15deg);
+        }
+
+        50% {
+            transform: rotate(15deg);
+        }
+    }
+
+    @@keyframes pulse {0%, 100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    /* Responsive */
+    @@media (max-width: 480px) {
+        .register-card {
+            padding: 32px 24px !important;
+        }
+
+        .brand-title {
+            font-size: 28px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+        }
+
+        .decoration-utensil {
+            font-size: 24px;
+        }
+
+        .circle-1 {
+            width: 80px;
+            height: 80px;
+        }
+
+        .circle-2 {
+            width: 100px;
+            height: 100px;
+        }
+    }
+</style>
+
+@code {
+    private string Name = "";
+    private string LastName = "";
+    private string Email = "";
+    private string Password1 = "";
+    private string Message = "";
+
+    async Task registration()
+    {
+        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password1))
+        {
+            Message = "נא למלא את כל השדות.";
+            return;
+        }
+
+        CustomerDB customerDB = new CustomerDB();
+        Customers customer = new Customers
+        {
+            Name = Name,
+            LastName = LastName,
+            Email = Email,
+            Password = Password1
+        };
+
+        customer = await customerDB.InsertGetObjAsync(customer);
+
+        if (customer.CustomerID != 0)
+        {
+            Message = $"ברוך הבא, {customer.Name}! 🍲";
+            await Task.Delay(1000);
+            navigationManager.NavigateTo("/Login");
+        }
+        else
+        {
+            Message = "שגיאה בהרשמה, נסה שוב מאוחר יותר.";
+        }
+    }
+}

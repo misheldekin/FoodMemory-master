@@ -1,0 +1,286 @@
+﻿@page "/AfterLog"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+
+<div class="app-screen">
+    <header class="header">
+        <div class="header-content">
+            <nav class="nav-bar">
+                <a href="#">מתכונים</a>
+                <a href="#">סיפורים</a>
+                <a href="#">מצא שף</a>
+            </nav>
+            <div class="user-profile" @onclick="GoToProfile" title="עדכון פרופיל">
+                <img src="@profileImage" alt="פרופיל" class="profile-icon">
+            </div>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="welcome-title">ברוכה הבאה, @CustomerName</h1>
+                <h1>שמרו על זיכרונות משפחתיים דרך אוכל וסיפורים</h1>
+                <p class="hero-subtitle">התחברו מחדש לשורשים שלכם</p>
+
+                <div class="cta-buttons">
+                    <button class="cta-share">שתף את הסיפור שלך</button>
+                    <button class="cta-find">מצא את השף שלך</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="stories-section">
+            <h2>סיפורים מרגשים</h2>
+            <div class="stories-list">
+                <div class="story-card">
+                   <img src=" /images/תפוזים.jpg">
+                    <p>עוגת תפוזים של אלי שרעבי</p>
+                </div>
+                <div class="story-card">
+                    <img src="/images/קוקילידה.jpg"/>
+                    <p>קוקילדה של לירי אלבג</p>
+                </div>
+                <div class="story-card">
+                    <img src="/images/תפוחים.jpg"/>
+                    <p>עוגת תפוחים של אורי דנינו</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="chefs-section">
+            <h2>שפים מומלצים</h2>
+            <div class="chefs-list">
+                <div class="chef-card">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/%D7%97%D7%99%D7%99%D7%9D_%D7%9B%D7%94%D7%9F-_%D7%9E%D7%90%D7%A1%D7%98%D7%A8_%D7%A9%D7%A3_8.jpg" alt="שף חיים">
+                    <p>שף חיים</p>
+                </div>
+                <div class="chef-card">
+                    <img src="https://ynet-pic1.yit.co.il/picserver5/crop_images/2021/04/13/B1mYK0GL00/B1mYK0GL00_0_10_1101_620_0_x-large.jpg" alt="שף אסף">
+                    <p>שף אסף</p>
+                </div>
+                <div class="chef-card">
+                    <img src="https://images1.ynet.co.il/PicServer5/2018/05/13/8527772/85277700100270640360no.jpg" alt="שף ישראל">
+                    <p>שף ישראל</p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<style>
+    .app-screen {
+        margin: 0;
+        background-color: #f7f3ed;
+        font-family: Arial, sans-serif;
+        text-align: right;
+        direction: rtl;
+    }
+
+    /* ===================== Header ===================== */
+    .header {
+        background-color: white;
+        padding: 20px 40px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 40px;
+        position: relative;
+    }
+
+    .nav-bar {
+        display: flex;
+        gap: 30px;
+    }
+
+        .nav-bar a {
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+            .nav-bar a:hover {
+                color: #457b9d;
+            }
+
+    .user-profile {
+        position: absolute;
+        right: 0;
+        top: 0;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+        .user-profile:hover {
+            transform: scale(1.05);
+        }
+
+    .profile-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #6a994e;
+    }
+
+    .welcome-title {
+        margin-top: 11px;
+        font-size: 1.2em;
+        color: white;
+        font-weight: bold;
+    }
+
+    /* ===================== Hero ===================== */
+    .content-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .hero-section {
+        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/images/FamiltPic.jpg') center center no-repeat;
+        background-size: cover;
+        color: white;
+        padding: 200px 35px;
+        margin-bottom: 20px;
+        border-radius: 20px;
+        text-align: center;
+    }
+
+    .hero-content h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+        line-height: 1.2;
+    }
+
+    .hero-subtitle {
+        font-size: 1.5em;
+        margin-bottom: 40px;
+        font-weight: 300;
+        color: #eee;
+    }
+
+    .cta-buttons button {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 25px;
+        margin: 0 10px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 1.1em;
+        transition: background-color 0.3s;
+    }
+
+    .cta-share {
+        background-color: #6a994e;
+        color: white;
+    }
+
+        .cta-share:hover {
+            background-color: #588242;
+        }
+
+    .cta-find {
+        background-color: #457b9d;
+        color: white;
+    }
+
+        .cta-find:hover {
+            background-color: #386782;
+        }
+
+    /* ===================== Stories & Chefs ===================== */
+    .stories-section, .chefs-section {
+        padding: 30px 0;
+    }
+
+        .stories-section h2, .chefs-section h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+    .stories-list, .chefs-list {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+    }
+
+    .story-card, .chef-card {
+        flex: 1;
+        max-width: calc(33.33% - 14px);
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        transition: transform 0.2s;
+        background-color: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+        .story-card:hover, .chef-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
+        .story-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .story-card p, .chef-card p {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .chef-card img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+            border: 3px solid #6a994e;
+        }
+
+        .chef-card span {
+            display: block;
+            font-size: 0.9em;
+            color: #777;
+        }
+</style>
+
+@code {
+    private string CustomerName = "";
+    private string profileImage = "/images/defultpic.jpg";
+    protected override async Task OnInitializedAsync()
+    {
+        ProtectedBrowserStorageResult<string> resultName = await MySession.GetAsync<string>("firstname");
+        ProtectedBrowserStorageResult<string> resultProfileImage = await MySession.GetAsync<string>("profilepic");
+        if (!resultName.Success || resultName.Value == null)
+        {
+            navigationManager.NavigateTo("/Login");
+        }
+        else
+        {
+            CustomerName = resultName.Value;
+            if (resultProfileImage.Success && !string.IsNullOrEmpty(resultProfileImage.Value))
+            {
+                profileImage = resultProfileImage.Value;
+            }
+        }
+    }
+
+    private void GoToProfile()
+    {
+        navigationManager.NavigateTo("/UpdateProfile");
+    }
+}
