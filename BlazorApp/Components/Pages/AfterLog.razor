@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedSessionStorage MySession
 @inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@using DBL
+@using Models
 
 <div class="app-screen">
     <header class="header">
@@ -29,23 +31,37 @@
                     <button class="cta-find">מצא את השף שלך</button>
                 </div>
             </div>
+
         </section>
 
         <section class="stories-section">
+            <div class="search-container">
+                <input @bind-value="SearchRec"
+                       type="text"
+                       class="search-input"
+                       placeholder="חיפוש מתכון..."
+                       required autofocus />
+
+                <button @onclick="SearchBtn"
+                        class="btn-search"
+                        type="button">
+                    חיפוש
+                </button>
+            </div>
+
+
             <h2>סיפורים מרגשים</h2>
             <div class="stories-list">
-                <div class="story-card">
-                   <img src=" /images/תפוזים.jpg">
-                    <p>עוגת תפוזים של אלי שרעבי</p>
-                </div>
-                <div class="story-card">
-                    <img src="/images/קוקילידה.jpg"/>
-                    <p>קוקילדה של לירי אלבג</p>
-                </div>
-                <div class="story-card">
-                    <img src="/images/תפוחים.jpg"/>
-                    <p>עוגת תפוחים של אורי דנינו</p>
-                </div>
+                @if (recipes != null)
+                {
+                    @for (int i = 0; i < recipes.Count; i++)
+                    {
+                        <div class="story-card">
+                            <img src=" /images/תפוזים.jpg">
+                            <a href="Showrecipe/id=@recipes[i].RecipeID"> <p>@recipes[i].Name</p></a>
+                        </div>
+                    }
+                }    
             </div>
         </section>
 
@@ -70,6 +86,72 @@
 </div>
 
 <style>
+
+    /* ======== Search Container ======== */
+    .search-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* מרכז את כל השורה */
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 600px; /* רוחב מקסימלי כדי שלא יתפרס רחב מדי */
+        margin: 0 auto 30px auto; /* מרכז גם אופקית */
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* ======== Input ======== */
+    .search-input {
+        width: 100%;
+        flex-grow: 1;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 1.1rem;
+        border: 1px solid #ced4da;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .search-input:focus {
+            border-color: #6a994e; /* ירוק מבריק */
+            box-shadow: 0 0 5px rgba(106, 153, 78, 0.4);
+        }
+
+    /* ======== Button ======== */
+    .btn-search {
+        background-color: #6a994e; /* ירוק תואם לאתר */
+        color: white;
+        font-weight: 600;
+        padding: 12px 28px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .btn-search:hover {
+            background-color: #543618; 
+            transform: translateY(-2px);
+        }
+
+    @@media (min-width: 768px) {
+        .search-container
+
+    {
+        flex-direction: row;
+    }
+
+    .search-input {
+        margin-right: 10px; 
+    }
+
+    }
+
+
+
     .app-screen {
         margin: 0;
         background-color: #f7f3ed;
@@ -261,6 +343,8 @@
 @code {
     private string CustomerName = "";
     private string profileImage = "/images/defultpic.jpg";
+    List<Recipes> recipes;
+    private string SearchRec = "";
     protected override async Task OnInitializedAsync()
     {
         ProtectedBrowserStorageResult<string> resultName = await MySession.GetAsync<string>("firstname");
@@ -276,7 +360,17 @@
             {
                 profileImage = resultProfileImage.Value;
             }
+            RecipeDB dB = new RecipeDB();
+            recipes = await dB.GetAllAsync();
+
         }
+    }
+
+    private async Task SearchBtn()
+    {
+        RecipeDB p = new RecipeDB();
+        recipes = (List<Recipes>)await p.SearchRecipesByNameAsync(SearchRec);
+
     }
 
     private void GoToProfile()
