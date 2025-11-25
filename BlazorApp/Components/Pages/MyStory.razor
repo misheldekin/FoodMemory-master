@@ -1,0 +1,247 @@
+﻿@page "/Recipe/{RecipeId:int}"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject NavigationManager NavigationManager
+@inject ProtectedSessionStorage MySession
+
+@if (recipe == null)
+{
+    <p>טוען מתכון...</p>
+}
+else
+{
+    <h1 class="recipe-title">@recipe.Name</h1>
+
+    <div class="recipe-card">
+
+        <h2>הרשימת מרכיבים:</h2>
+        @if (ingredients != null && ingredients.Count > 0)
+        {
+            <ul>
+                @foreach (var ing in ingredients)
+                {
+                    <li>@ing.Quantity @ing.Size - @GetIngredientName(ing.IngredientID)</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>אין מרכיבים זמינים.</p>
+        }
+
+        <h2>הוראות הכנה:</h2>
+        <p>@((MarkupString)FormatInstructions(recipe.RecipeInstructions))</p>
+
+        <button @onclick="GoBack">חזרה לרשימת המתכונים</button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int RecipeId { get; set; }
+
+    private Recipes recipe;
+    private List<RecipeIngredient> ingredients;
+    private Dictionary<int, string> ingredientNames = new Dictionary<int, string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await MySession.SetAsync("SelectedRecipeId", RecipeId.ToString());
+
+        RecipeDB recipeDB = new RecipeDB();
+        recipe = await recipeDB.SelectByPkAsync(RecipeId);
+
+        if (recipe == null)
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        RecipeIngredientDB ingredientDB = new RecipeIngredientDB();
+        ingredients = await ingredientDB.GetByRecipeAsync(RecipeId);
+
+        await LoadIngredientNames();
+    }
+
+    private async Task LoadIngredientNames()
+    {
+        if (ingredients == null) return;
+
+        IngredientDB ingredientDB = new IngredientDB();
+        foreach (var ing in ingredients)
+        {
+            var i = await ingredientDB.SelectByPkAsync(ing.IngredientID);
+            if (i != null)
+                ingredientNames[ing.IngredientID] = i.IngredientName;
+        }
+    }
+
+    private string GetIngredientName(int id)
+    {
+        return ingredientNames.ContainsKey(id) ? ingredientNames[id] : "מרכיב לא ידוע";
+    }
+
+    private string FormatInstructions(string instructions)
+    {
+        if (string.IsNullOrWhiteSpace(instructions)) return "";
+        var lines = instructions.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        // שינוי קטן כדי לאפשר עיצוב טוב יותר של כל שלב באמצעות CSS
+        return string.Join("", lines.Select(l => $"<span>• {l.Trim()}</span>"));
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/AfterLog");
+    }
+}
+
+<style>
+    /* ----------------------------------------------------------------
+           סגנון כללי - מומלץ להכניס לקובץ site.css או Recipe.razor.css
+           ---------------------------------------------------------------- */
+
+    :root {
+        --primary-color: #6a994e; /* ירוק זית בהיר, בהשראת הכרטיס */
+        --accent-color: #f7a399; /* ורוד עדין */
+        --background-light: #fefefe;
+        --card-bg: #ffffff;
+        --text-dark: #333333;
+        --text-muted: #6c757d;
+        --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    body {
+        /* נניח שהגופן הוא Assistant או Heebo אם קיים */
+        font-family: 'Assistant', 'Heebo', sans-serif;
+        color: var(--text-dark);
+        direction: rtl; /* יישור מימין לשמאל */
+        background-color: #f5f5f5; /* רקע עדין לדף כולו */
+    }
+
+    /* ----------------------------------------------------------------
+           עיצוב כותרת וכרטיס המתכון
+           ---------------------------------------------------------------- */
+
+    .recipe-title {
+        font-size: 2.5em;
+        font-weight: 700;
+        color: var(--primary-color);
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .recipe-card {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: var(--card-bg);
+        padding: 40px;
+        border-radius: 20px; /* גבולות מעוגלים כמו בכרטיס המקורי */
+        box-shadow: var(--shadow-light);
+        border: 1px solid #eee;
+    }
+
+        /* ----------------------------------------------------------------
+           כותרות פנימיות
+           ---------------------------------------------------------------- */
+
+        .recipe-card h2 {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #585858;
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 5px;
+            margin-top: 35px;
+            margin-bottom: 20px;
+        }
+
+        /* ----------------------------------------------------------------
+           רשימת מרכיבים (Ingredients)
+           ---------------------------------------------------------------- */
+
+        .recipe-card ul {
+            list-style: none; /* מסיר את התבליטים הרגילים */
+            padding-right: 0;
+        }
+
+            .recipe-card ul li {
+                padding: 10px 0;
+                font-size: 1.1em;
+                border-bottom: 1px dashed #e0e0e0;
+                display: flex;
+                align-items: center;
+            }
+
+                .recipe-card ul li::before {
+                    content: '🌿'; /* אייקון עלה קטן במקום תבליט */
+                    color: var(--primary-color);
+                    font-size: 1.2em;
+                    margin-left: 10px;
+                    line-height: 1; /* יישור אנכי של האייקון */
+                }
+
+        /* ----------------------------------------------------------------
+           הוראות הכנה (Instructions)
+           ---------------------------------------------------------------- */
+
+        .recipe-card p {
+            line-height: 1.8;
+            font-size: 1.1em;
+            white-space: pre-wrap; /* שומר על רווחים וקווים חדשים */
+            margin-bottom: 30px;
+            color: var(--text-dark);
+        }
+
+            /* עיצוב התבליטים שיצרת בפונקציית FormatInstructions */
+            .recipe-card p > span {
+                display: block;
+                margin-bottom: 15px;
+                line-height: 1.5;
+            }
+
+                .recipe-card p > span::before {
+                    content: '👩‍🍳'; /* אייקון סיר קטן */
+                    color: var(--accent-color);
+                    margin-left: 10px;
+                    font-size: 1.1em;
+                }
+
+    /* ----------------------------------------------------------------
+           כפתור חזרה
+           ---------------------------------------------------------------- */
+
+    button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 10px;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.1s;
+        display: block;
+        width: 100%;
+        max-width: 300px;
+        margin: 30px auto 0 auto; /* ממורכז */
+        font-weight: 500;
+    }
+
+        button:hover {
+            background-color: #4f772d; /* גוון כהה יותר */
+            transform: translateY(-1px);
+        }
+
+    /* ----------------------------------------------------------------
+           מצב טעינה ונתונים חס
+    p {
+        text-align: right; /* יישור לימין של פסקאות רגילות */
+        color: var(--text-muted);
+    }
+
+    .recipe-card > p {
+        text-align: right;
+    }
+</style>
+

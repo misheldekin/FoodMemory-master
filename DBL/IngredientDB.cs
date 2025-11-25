@@ -49,6 +49,16 @@ namespace DBL
             parameters.Add("searchTerm", $"%{searchTerm}%"); 
             return (List<Ingredient>)await SelectAllAsync(sql, parameters);
         }
+        public async Task<Ingredient> SelectByPkAsync(int id)
+        {
+            Dictionary<string, object> p = new Dictionary<string, object>();
+            p.Add("idIngredients", id);
+            List<Ingredient> list = (List<Ingredient>)await SelectAllAsync(p);
+            if (list.Count == 1)
+                return list[0];
+            else
+                return null;
+        }
 
     }
 }

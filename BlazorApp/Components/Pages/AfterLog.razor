@@ -27,8 +27,8 @@
                 <p class="hero-subtitle">התחברו מחדש לשורשים שלכם</p>
 
                 <div class="cta-buttons">
-                    <button class="cta-share">שתף את הסיפור שלך</button>
-                    <button class="cta-find">מצא את השף שלך</button>
+                    <button class="cta-share" @onclick="GoToMakeRecipe">
+                        שתף את הסיפור שלך</button><button class="cta-find">מצא את השף שלך</button>
                 </div>
             </div>
 
@@ -49,17 +49,19 @@
                 </button>
             </div>
 
-
+                 
             <h2>סיפורים מרגשים</h2>
             <div class="stories-list">
                 @if (recipes != null)
                 {
                     @for (int i = 0; i < recipes.Count; i++)
                     {
-                        <div class="story-card">
-                            <img src=" /images/תפוזים.jpg">
-                            <a href="Showrecipe/id=@recipes[i].RecipeID"> <p>@recipes[i].Name</p></a>
-                        </div>
+                        <a href="@($"/Recipe/{recipes[i].RecipeID}")" class="story-card-link">
+                            <div class="story-card">
+                                <img src="images/תפוזים.jpg" alt="תמונה של מתכון">
+                                <p>@recipes[i].Name</p>
+                            </div>
+                        </a>
                     }
                 }    
             </div>
@@ -371,6 +373,11 @@
         RecipeDB p = new RecipeDB();
         recipes = (List<Recipes>)await p.SearchRecipesByNameAsync(SearchRec);
 
+    }
+   
+    private void GoToMakeRecipe()
+    {
+        navigationManager.NavigateTo("/makeRecipe");
     }
 
     private void GoToProfile()
