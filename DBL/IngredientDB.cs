@@ -23,7 +23,7 @@ namespace DBL
         protected override async Task<Ingredient> CreateModelAsync(object[] row)
         {
             Ingredient ingredient = new Ingredient();
-            ingredient.IngredientID = row[0].ToString();
+            ingredient.IngredientID = int.Parse(row[0].ToString());
             ingredient.IngredientName = row[1].ToString();
             return ingredient;
         }

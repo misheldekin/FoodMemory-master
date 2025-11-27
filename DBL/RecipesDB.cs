@@ -28,6 +28,7 @@ namespace DBL
             recipe.Name = row[2].ToString();
             recipe.PrepTime =int.Parse(row[3].ToString());
             recipe.RecipeInstructions = row[4].ToString();
+            recipe.ImageURL = row[5].ToString();
             return recipe;
         }
 
@@ -43,7 +44,8 @@ namespace DBL
                 { "userID", recipe.UserID },
                 { "name", recipe.Name },
                 { "prep_time", recipe.PrepTime },
-                { "recipescol", recipe.RecipeInstructions}
+                { "recipescol", recipe.RecipeInstructions},
+                { "Picture", recipe.ImageURL   }
             };
             return (Recipes)await base.InsertGetObjAsync(fillValues);
         }
@@ -56,6 +58,7 @@ namespace DBL
             fillValues.Add("name", recipe.Name);
             fillValues.Add("prep_time", recipe.PrepTime);
             fillValues.Add("recipescol", recipe.RecipeInstructions);
+            fillValues.Add("Picture", recipe.ImageURL);
             filterValues.Add("idRecipes", recipe.RecipeID);
             return await base.UpdateAsync(fillValues, filterValues);
         }

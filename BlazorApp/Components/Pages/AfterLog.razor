@@ -58,7 +58,7 @@
                     {
                         <a href="@($"/Recipe/{recipes[i].RecipeID}")" class="story-card-link">
                             <div class="story-card">
-                                <img src="images/תפוזים.jpg" alt="תמונה של מתכון">
+                                <img src="images/@recipes[i].ImageURL" alt="@recipes[i].Name">
                                 <p>@recipes[i].Name</p>
                             </div>
                         </a>
@@ -372,7 +372,6 @@
     {
         RecipeDB p = new RecipeDB();
         recipes = (List<Recipes>)await p.SearchRecipesByNameAsync(SearchRec);
-
     }
    
     private void GoToMakeRecipe()

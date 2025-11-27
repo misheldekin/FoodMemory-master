@@ -13,16 +13,18 @@ namespace Models
         public string Name { get; set; }
         public int PrepTime { get; set; }
         public string RecipeInstructions { get; set; }
+        public string ImageURL { get; set; }
 
         public Recipes() { }
 
-        public Recipes(int recipeID, int userID, string name, int prepTime, string recipeInstructions)
+        public Recipes(int recipeID, int userID, string name, int prepTime, string recipeInstructions, string imageURL)
         {
             this.RecipeID = recipeID;
             this.UserID = userID;
             this.Name = name;
             this.PrepTime = prepTime;
             RecipeInstructions = recipeInstructions;
+            ImageURL = imageURL;
         }
     }
 }
