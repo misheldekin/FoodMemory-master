@@ -5,7 +5,219 @@
 @inject NavigationManager Navigation
 @inject ProtectedSessionStorage MySession
 
+<style>
+    .page-container {
+        max-width: 650px;
+        margin: auto;
+        padding: 25px;
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.1);
+        font-family: 'Segoe UI', sans-serif;
+        direction: rtl;
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 15px;
+        color: #4a4a4a;
+        font-weight: 700;
+    }
+
+    label {
+        font-weight: 600;
+        margin-top: 15px;
+        display: block;
+    }
+
+    select, input, textarea {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+
+    textarea {
+        height: 120px;
+    }
+
+    .btn {
+        padding: 10px 18px;
+        border: none;
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 15px;
+        margin-top: 10px;
+    }
+
+    .btn-add {
+        background: #6a5acd;
+    }
+
+    .btn-new {
+        background: #00a896;
+        margin-right: 5px;
+    }
+
+    .ingredients-box {
+        background: #f7f7ff;
+        border-radius: 10px;
+        padding: 15px;
+        border: 1px solid #dcdcff;
+        margin-top: 10px;
+        white-space: pre-line;
+        min-height: 80px;
+    }
+
+    .flex-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+        .flex-row select {
+            flex: 1;
+        }
+</style>
+
+<div class="page-container">
+    <h2>הוספת מתכון חדש</h2>
+
+    <!-- שדה שם המתכון -->
+    <label>שם המתכון:</label>
+    <input @bind="RecipeName" placeholder="הקלידי שם למתכון" />
+
+    <label>בחר רכיב:</label>
+    <div class="flex-row">
+        <select @bind="SelectedIngredient">
+            <option value="">-- בחר --</option>
+            @for (int i = 0; i < Ingredients.Count; i++)
+            {
+                <option value="@Ingredients[i]">@Ingredients[i]</option>
+            }
+        </select>
+        <button class="btn btn-new" @onclick="ShowAddIngredient">הוסף רכיב חדש</button>
+    </div>
+
+    @if (AddingNew)
+    {
+        <div style="margin-top:10px;">
+            <label>שם רכיב חדש:</label>
+            <input @bind="NewIngredientName" />
+            <button class="btn btn-add" @onclick="SaveNewIngredient">הוסף רכיב</button>
+        </div>
+    }
+
+    <label>כמות:</label>
+    <input type="number" @bind="Amount" />
+
+    <label>גודל:</label>
+    <input @bind="Size" />
+
+    <button class="btn btn-add" @onclick="AddToList">הוסף לרשימת המרכיבים</button>
+
+    <label>רשימת רכיבים:</label>
+    <div class="ingredients-box">
+        @IngredientsText
+    </div>
+
+    <label>הוראות הכנה:</label>
+    <textarea @bind="Instructions"></textarea>
+
+    <!-- כפתור שמירה בסוף -->
+    <button class="btn btn-add" style="margin-top:20px;" @onclick="SaveRecipe">שמור מתכון</button>
+</div>
 
 @code {
-   
+    public List<string> Ingredients = new List<string>();
+
+    public string RecipeName = "";
+
+    public string SelectedIngredient = "";
+    public int Amount = 0;
+    public string Size = "";
+
+    public string IngredientsText = "";
+    public string Instructions = "";
+
+    public bool AddingNew = false;
+    public string NewIngredientName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        IngredientDB db = new IngredientDB();
+        List<Ingredient> list = await db.GetAllAsync();
+
+        if (list == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            Ingredients.Add(list[i].IngredientName);
+        }
+    }
+
+    public void ShowAddIngredient()
+    {
+        AddingNew = true;
+    }
+
+    public async Task SaveNewIngredient()
+    {
+        if (NewIngredientName != null && NewIngredientName.Trim() != "")
+        {
+            IngredientDB db = new IngredientDB();
+            Ingredient item = new Ingredient();
+            item.IngredientName = NewIngredientName;
+
+            await db.InsertGetObjAsync(item);
+
+            Ingredients.Add(NewIngredientName);
+            SelectedIngredient = NewIngredientName;
+
+            NewIngredientName = "";
+            AddingNew = false;
+        }
+    }
+
+    public void AddToList()
+    {
+        if (SelectedIngredient != null && SelectedIngredient.Trim() != "" &&
+            Amount > 0 && Size != null && Size.Trim() != "")
+        {
+            IngredientsText = IngredientsText + SelectedIngredient + "  " + Amount + "  " + Size + "\n";
+        }
+
+        SelectedIngredient = "";
+        Amount = 0;
+        Size = "";
+    }
+
+    public async Task SaveRecipe()
+    {
+        if (RecipeName == null || RecipeName.Trim() == "")
+        {
+            return;
+        }
+
+        RecipeDB db = new RecipeDB();
+        Recipes newRecipe = new Recipes();
+        newRecipe.Name = RecipeName.Trim();
+        newRecipe.RecipeInstructions = Instructions;
+
+        await db.InsertGetObjAsync(newRecipe);
+
+        RecipeName = "";
+        IngredientsText = "";
+        Instructions = "";
+        SelectedIngredient = "";
+        Amount = 0;
+        Size = "";
+    }
 }
+
