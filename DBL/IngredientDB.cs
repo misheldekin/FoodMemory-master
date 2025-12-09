@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Models;
 
@@ -30,25 +28,27 @@ namespace DBL
 
         public async Task<List<Ingredient>> GetAllAsync()
         {
-            return ((List<Ingredient>)await SelectAllAsync());
+            List<Ingredient> list = (List<Ingredient>)await SelectAllAsync();
+            return list;
         }
 
         public async Task<Ingredient> InsertGetObjAsync(Ingredient ingredient)
         {
-            Dictionary<string, object> fillValues = new Dictionary<string, object>()
-            {
-                { "name", ingredient.IngredientName }
-            };
-            return (Ingredient)await base.InsertGetObjAsync(fillValues);
+            Dictionary<string, object> fillValues = new Dictionary<string, object>();
+            fillValues.Add("name", ingredient.IngredientName);
+            Ingredient inserted = (Ingredient)await base.InsertGetObjAsync(fillValues);
+            return inserted;
         }
 
         public async Task<List<Ingredient>> SearchIngredientsByNameAsync(string searchTerm)
         {
             string sql = "SELECT * FROM ingredients WHERE name LIKE @searchTerm";
             Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("searchTerm", $"%{searchTerm}%"); 
-            return (List<Ingredient>)await SelectAllAsync(sql, parameters);
+            parameters.Add("searchTerm", "%" + searchTerm + "%");
+            List<Ingredient> results = (List<Ingredient>)await SelectAllAsync(sql, parameters);
+            return results;
         }
+
         public async Task<Ingredient> SelectByPkAsync(int id)
         {
             Dictionary<string, object> p = new Dictionary<string, object>();
@@ -56,9 +56,8 @@ namespace DBL
             List<Ingredient> list = (List<Ingredient>)await SelectAllAsync(p);
             if (list.Count == 1)
                 return list[0];
-            else
-                return null;
+            return null;
         }
-
     }
 }
+
