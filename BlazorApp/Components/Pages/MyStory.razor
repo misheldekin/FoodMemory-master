@@ -1,247 +1,356 @@
-﻿@page "/Recipe/{RecipeId:int}"
+﻿@page "/Recipe/{RecipeID:int}"
 @using Models
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject NavigationManager NavigationManager
+@inject NavigationManager Navigation
 @inject ProtectedSessionStorage MySession
+@inject IJSRuntime JSRuntime
 
-@if (recipe == null)
-{
-    <p>טוען מתכון...</p>
-}
-else
-{
-    <h1 class="recipe-title">@recipe.Name</h1>
+<div class="recipe-page-container">
+    @if (IsLoading)
+    {
+        <div class="loading-message">טוען מתכון...</div>
+    }
+    else if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="error-message">@ErrorMessage</div>
+    }
+    else if (Recipe == null)
+    {
+        <div class="error-message">המתכון לא נמצא.</div>
+    }
+    else
+    {
+        <h2 class="recipe-title">@Recipe.Name</h2>
 
-    <div class="recipe-card">
 
-        <h2>הרשימת מרכיבים:</h2>
-        @if (ingredients != null && ingredients.Count > 0)
+        @if (!string.IsNullOrWhiteSpace(Recipe.ImageURL))
         {
-            <ul>
-                @foreach (var ing in ingredients)
+            <div class="recipe-image-container">
+
+                <img src="@Recipe.ImageURL" alt="תמונת @Recipe.Name" class="recipe-main-image" />
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Recipe.Story))
+        {
+            <div class="section-card">
+                <h3>📖 הסיפור של @Recipe.Name</h3>
+                <p>@Recipe.Story</p>
+            </div>
+        }
+
+        <div class="section-card">
+            <h3>🛒 רכיבים</h3>
+            <ul class="ingredients-list">
+                @foreach (var ingredient in DisplayIngredients)
                 {
-                    <li>@ing.Quantity @ing.Size - @GetIngredientName(ing.IngredientID)</li>
+                    <li>
+                        <span class="ingredient-name">@ingredient.Name</span>
+                        <span class="ingredient-details">@ingredient.Amount @ingredient.Size</span>
+                    </li>
                 }
             </ul>
-        }
-        else
-        {
-            <p>אין מרכיבים זמינים.</p>
+            @if (DisplayIngredients.Count == 0)
+            {
+                <div class="no-data-message">לא צוינו רכיבים למתכון זה.</div>
+            }
+        </div>
+
+        <div class="section-card instructions-section">
+            <h3>🔪 הוראות הכנה</h3>
+            @if (!string.IsNullOrWhiteSpace(Recipe.RecipeInstructions))
+            {
+                <div class="instructions-content">
+                    @foreach (var step in GetInstructionsSteps(Recipe.RecipeInstructions))
+                    {
+                        <div class="instruction-step">
+                            <span class="step-number"></span>
+                            @step
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data-message">לא צוינו הוראות הכנה למתכון זה.</div>
+            }
+        </div>
+
+    }
+
+    <button class="btn btn-back" @onclick="GoBack">
+        <span class="oi oi-arrow-right" aria-hidden="true"></span> חזרה
+    </button>
+
+</div>
+
+<style>
+    .recipe-page-container {
+        max-width: 800px;
+        margin: 25px auto;
+        padding: 30px;
+        background: #fdfdfd;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        font-family: 'Segoe UI', sans-serif;
+        direction: rtl;
+    }
+
+    .recipe-title {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #4a4a4a;
+        font-weight: 800;
+        font-size: 2.2em;
+        border-bottom: 3px solid #6a5acd;
+        padding-bottom: 10px;
+    }
+
+    .recipe-image-container {
+        margin-bottom: 25px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .recipe-main-image {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .section-card {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+    }
+
+        .section-card h3 {
+            color: #6a5acd;
+            font-size: 1.6em;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        <h2>הוראות הכנה:</h2>
-        <p>@((MarkupString)FormatInstructions(recipe.RecipeInstructions))</p>
+    .ingredients-list {
+        list-style: none;
+        padding: 0;
+    }
 
-        <button @onclick="GoBack">חזרה לרשימת המתכונים</button>
-    </div>
-}
+        .ingredients-list li {
+            padding: 10px 0;
+            border-bottom: 1px dotted #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+            .ingredients-list li:last-child {
+                border-bottom: none;
+            }
+
+    .ingredient-name {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .ingredient-details {
+        background: #f7f7ff;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.9em;
+        color: #6a5acd;
+        font-weight: 500;
+    }
+
+    .instructions-section h3 {
+        color: #00a896;
+    }
+
+    .instructions-content {
+        counter-reset: step-counter;
+    }
+
+    .instruction-step {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+
+        .instruction-step .step-number {
+            counter-increment: step-counter;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #00a896;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+            .instruction-step .step-number::before {
+                content: counter(step-counter);
+            }
+
+    .btn-back {
+        background: #999;
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .btn-back:hover {
+            background: #777;
+        }
+
+    .recipe-footer {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 15px;
+        border-top: 1px dashed #eee;
+        font-size: 0.85em;
+        color: #999;
+    }
+
+    .loading-message, .no-data-message {
+        text-align: center;
+        padding: 20px;
+        color: #6a5acd;
+        font-size: 1.2em;
+    }
+
+    .error-message {
+        background: #ffebee;
+        color: #c62828;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #ef5350;
+        text-align: center;
+    }
+</style>
 
 @code {
     [Parameter]
-    public int RecipeId { get; set; }
+    public int RecipeID { get; set; }
 
-    private Recipes recipe;
-    private List<RecipeIngredient> ingredients;
-    private Dictionary<int, string> ingredientNames = new Dictionary<int, string>();
+    private Recipes Recipe { get; set; }
+    private List<DisplayRecipeIngredientModel> DisplayIngredients = new List<DisplayRecipeIngredientModel>();
+    private bool IsLoading = true;
+    private string ErrorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        await MySession.SetAsync("SelectedRecipeId", RecipeId.ToString());
-
-        RecipeDB recipeDB = new RecipeDB();
-        recipe = await recipeDB.SelectByPkAsync(RecipeId);
-
-        if (recipe == null)
+        try
         {
-            NavigationManager.NavigateTo("/");
-            return;
+            IsLoading = true;
+            ErrorMessage = "";
+            Recipe = null;
+            DisplayIngredients.Clear();
+
+            if (RecipeID <= 0)
+            {
+                ErrorMessage = "מזהה מתכון לא תקין.";
+                return;
+            }
+
+            RecipeDB recipeDb = new RecipeDB();
+            Recipe = await recipeDb.SelectByPkAsync(RecipeID);
+
+            if (Recipe == null)
+            {
+                ErrorMessage = "המתכון לא נמצא במסד הנתונים.";
+                return;
+            }
+
+            RecipeIngredientDB riDb = new RecipeIngredientDB();
+            List<RecipeIngredient> recipeIngredients = await riDb.GetByRecipeAsync(RecipeID);
+
+            if (recipeIngredients != null)
+            {
+                IngredientDB ingDb = new IngredientDB();
+
+                for (int i = 0; i < recipeIngredients.Count; i++)
+                {
+                    RecipeIngredient ri = recipeIngredients[i];
+
+                    Ingredient ing = await ingDb.SelectByPkAsync(ri.IngredientID);
+
+                    if (ing != null)
+                    {
+                        DisplayIngredients.Add(new DisplayRecipeIngredientModel
+                        {
+                            Name = ing.IngredientName,
+                            Amount = (int)ri.Quantity,
+                            Size = ri.Size
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error fetching recipe: {ex.Message}");
+            ErrorMessage = $"שגיאה בטעינת המתכון: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private IEnumerable<string> GetInstructionsSteps(string instructions)
+    {
+        if (string.IsNullOrWhiteSpace(instructions))
+        {
+            return Enumerable.Empty<string>();
         }
 
-        RecipeIngredientDB ingredientDB = new RecipeIngredientDB();
-        ingredients = await ingredientDB.GetByRecipeAsync(RecipeId);
+        string[] stepsArray = instructions.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-        await LoadIngredientNames();
-    }
-
-    private async Task LoadIngredientNames()
-    {
-        if (ingredients == null) return;
-
-        IngredientDB ingredientDB = new IngredientDB();
-        foreach (var ing in ingredients)
+        List<string> steps = new List<string>();
+        for (int i = 0; i < stepsArray.Length; i++)
         {
-            var i = await ingredientDB.SelectByPkAsync(ing.IngredientID);
-            if (i != null)
-                ingredientNames[ing.IngredientID] = i.IngredientName;
+            string step = stepsArray[i].Trim();
+            if (!string.IsNullOrWhiteSpace(step))
+            {
+                steps.Add(step);
+            }
         }
-    }
 
-    private string GetIngredientName(int id)
-    {
-        return ingredientNames.ContainsKey(id) ? ingredientNames[id] : "מרכיב לא ידוע";
-    }
+        if (steps.Count == 0 && !string.IsNullOrWhiteSpace(instructions))
+        {
+            return new List<string> { instructions.Trim() };
+        }
 
-    private string FormatInstructions(string instructions)
-    {
-        if (string.IsNullOrWhiteSpace(instructions)) return "";
-        var lines = instructions.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-        // שינוי קטן כדי לאפשר עיצוב טוב יותר של כל שלב באמצעות CSS
-        return string.Join("", lines.Select(l => $"<span>• {l.Trim()}</span>"));
+        return steps;
     }
 
     private void GoBack()
     {
-        NavigationManager.NavigateTo("/AfterLog");
+        Navigation.NavigateTo("/AfterLog");
+    }
+
+    private class DisplayRecipeIngredientModel
+    {
+        public string Name { get; set; }
+        public int Amount { get; set; }
+        public string Size { get; set; }
     }
 }
-
-<style>
-    /* ----------------------------------------------------------------
-           סגנון כללי - מומלץ להכניס לקובץ site.css או Recipe.razor.css
-           ---------------------------------------------------------------- */
-
-    :root {
-        --primary-color: #6a994e; /* ירוק זית בהיר, בהשראת הכרטיס */
-        --accent-color: #f7a399; /* ורוד עדין */
-        --background-light: #fefefe;
-        --card-bg: #ffffff;
-        --text-dark: #333333;
-        --text-muted: #6c757d;
-        --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    body {
-        /* נניח שהגופן הוא Assistant או Heebo אם קיים */
-        font-family: 'Assistant', 'Heebo', sans-serif;
-        color: var(--text-dark);
-        direction: rtl; /* יישור מימין לשמאל */
-        background-color: #f5f5f5; /* רקע עדין לדף כולו */
-    }
-
-    /* ----------------------------------------------------------------
-           עיצוב כותרת וכרטיס המתכון
-           ---------------------------------------------------------------- */
-
-    .recipe-title {
-        font-size: 2.5em;
-        font-weight: 700;
-        color: var(--primary-color);
-        text-align: center;
-        margin-bottom: 30px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #e0e0e0;
-    }
-
-    .recipe-card {
-        max-width: 800px;
-        margin: 0 auto;
-        background-color: var(--card-bg);
-        padding: 40px;
-        border-radius: 20px; /* גבולות מעוגלים כמו בכרטיס המקורי */
-        box-shadow: var(--shadow-light);
-        border: 1px solid #eee;
-    }
-
-        /* ----------------------------------------------------------------
-           כותרות פנימיות
-           ---------------------------------------------------------------- */
-
-        .recipe-card h2 {
-            font-size: 1.8em;
-            font-weight: 600;
-            color: #585858;
-            border-bottom: 3px solid var(--accent-color);
-            padding-bottom: 5px;
-            margin-top: 35px;
-            margin-bottom: 20px;
-        }
-
-        /* ----------------------------------------------------------------
-           רשימת מרכיבים (Ingredients)
-           ---------------------------------------------------------------- */
-
-        .recipe-card ul {
-            list-style: none; /* מסיר את התבליטים הרגילים */
-            padding-right: 0;
-        }
-
-            .recipe-card ul li {
-                padding: 10px 0;
-                font-size: 1.1em;
-                border-bottom: 1px dashed #e0e0e0;
-                display: flex;
-                align-items: center;
-            }
-
-                .recipe-card ul li::before {
-                    content: '🌿'; /* אייקון עלה קטן במקום תבליט */
-                    color: var(--primary-color);
-                    font-size: 1.2em;
-                    margin-left: 10px;
-                    line-height: 1; /* יישור אנכי של האייקון */
-                }
-
-        /* ----------------------------------------------------------------
-           הוראות הכנה (Instructions)
-           ---------------------------------------------------------------- */
-
-        .recipe-card p {
-            line-height: 1.8;
-            font-size: 1.1em;
-            white-space: pre-wrap; /* שומר על רווחים וקווים חדשים */
-            margin-bottom: 30px;
-            color: var(--text-dark);
-        }
-
-            /* עיצוב התבליטים שיצרת בפונקציית FormatInstructions */
-            .recipe-card p > span {
-                display: block;
-                margin-bottom: 15px;
-                line-height: 1.5;
-            }
-
-                .recipe-card p > span::before {
-                    content: '👩‍🍳'; /* אייקון סיר קטן */
-                    color: var(--accent-color);
-                    margin-left: 10px;
-                    font-size: 1.1em;
-                }
-
-    /* ----------------------------------------------------------------
-           כפתור חזרה
-           ---------------------------------------------------------------- */
-
-    button {
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 12px 25px;
-        border-radius: 10px;
-        font-size: 1.1em;
-        cursor: pointer;
-        transition: background-color 0.3s, transform 0.1s;
-        display: block;
-        width: 100%;
-        max-width: 300px;
-        margin: 30px auto 0 auto; /* ממורכז */
-        font-weight: 500;
-    }
-
-        button:hover {
-            background-color: #4f772d; /* גוון כהה יותר */
-            transform: translateY(-1px);
-        }
-
-    /* ----------------------------------------------------------------
-           מצב טעינה ונתונים חס
-    p {
-        text-align: right; /* יישור לימין של פסקאות רגילות */
-        color: var(--text-muted);
-    }
-
-    .recipe-card > p {
-        text-align: right;
-    }
-</style>
-

@@ -1,7 +1,7 @@
 ﻿@page "/AfterLog"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedSessionStorage MySession
-@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@inject NavigationManager navigationManager
 @using DBL
 @using Models
 
@@ -20,6 +20,7 @@
     </header>
 
     <main class="content-wrapper">
+        <!-- Hero Section -->
         <section class="hero-section">
             <div class="hero-content">
                 <h1 class="welcome-title">ברוכה הבאה, @CustomerName</h1>
@@ -27,46 +28,49 @@
                 <p class="hero-subtitle">התחברו מחדש לשורשים שלכם</p>
 
                 <div class="cta-buttons">
-                    <button class="cta-share" @onclick="GoToMakeRecipe">
-                        שתף את הסיפור שלך</button><button class="cta-find">מצא את השף שלך</button>
+                    <button class="cta-share" @onclick="GoToMakeRecipe">שתף את הסיפור שלך</button>
+                    <button class="cta-find">מצא את השף שלך</button>
                 </div>
             </div>
-
         </section>
 
+        <!-- Search Section -->
         <section class="stories-section">
             <div class="search-container">
-                <input @bind-value="SearchRec"
+                <input @bind="SearchRec"
                        type="text"
                        class="search-input"
                        placeholder="חיפוש מתכון..."
-                       required autofocus />
+                       autofocus />
 
-                <button @onclick="SearchBtn"
-                        class="btn-search"
-                        type="button">
+                <button @onclick="SearchBtn" class="btn-search" type="button">
                     חיפוש
                 </button>
             </div>
 
-                 
+            <!-- Recipes List -->
             <h2>סיפורים מרגשים</h2>
             <div class="stories-list">
-                @if (recipes != null)
+                @if (recipes == null || recipes.Count == 0)
+                {
+                    <p>לא נמצאו מתכונים.</p>
+                }
+                else
                 {
                     @for (int i = 0; i < recipes.Count; i++)
                     {
                         <a href="@($"/Recipe/{recipes[i].RecipeID}")" class="story-card-link">
                             <div class="story-card">
-                                <img src="images/@recipes[i].ImageURL" alt="@recipes[i].Name">
+                                <img src="@(string.IsNullOrWhiteSpace(recipes[i].ImageURL) ? "/images/defultpic.jpg" : recipes[i].ImageURL)" alt="@recipes[i].Name">
                                 <p>@recipes[i].Name</p>
                             </div>
                         </a>
                     }
-                }    
+                }
             </div>
         </section>
 
+        <!-- Chefs Section -->
         <section class="chefs-section">
             <h2>שפים מומלצים</h2>
             <div class="chefs-list">
@@ -88,72 +92,7 @@
 </div>
 
 <style>
-
-    /* ======== Search Container ======== */
-    .search-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center; /* מרכז את כל השורה */
-        justify-content: center;
-        gap: 10px;
-        width: 100%;
-        max-width: 600px; /* רוחב מקסימלי כדי שלא יתפרס רחב מדי */
-        margin: 0 auto 30px auto; /* מרכז גם אופקית */
-        padding: 20px;
-        background: #f8f9fa;
-        border-radius: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    /* ======== Input ======== */
-    .search-input {
-        width: 100%;
-        flex-grow: 1;
-        border-radius: 12px;
-        padding: 12px 16px;
-        font-size: 1.1rem;
-        border: 1px solid #ced4da;
-        transition: all 0.2s ease-in-out;
-    }
-
-        .search-input:focus {
-            border-color: #6a994e; /* ירוק מבריק */
-            box-shadow: 0 0 5px rgba(106, 153, 78, 0.4);
-        }
-
-    /* ======== Button ======== */
-    .btn-search {
-        background-color: #6a994e; /* ירוק תואם לאתר */
-        color: white;
-        font-weight: 600;
-        padding: 12px 28px;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-    }
-
-        .btn-search:hover {
-            background-color: #543618; 
-            transform: translateY(-2px);
-        }
-
-    @@media (min-width: 768px) {
-        .search-container
-
-    {
-        flex-direction: row;
-    }
-
-    .search-input {
-        margin-right: 10px; 
-    }
-
-    }
-
-
-
+    /* ===== App Styles ===== */
     .app-screen {
         margin: 0;
         background-color: #f7f3ed;
@@ -162,7 +101,7 @@
         direction: rtl;
     }
 
-    /* ===================== Header ===================== */
+    /* Header */
     .header {
         background-color: white;
         padding: 20px 40px;
@@ -214,14 +153,7 @@
         border: 2px solid #6a994e;
     }
 
-    .welcome-title {
-        margin-top: 11px;
-        font-size: 1.2em;
-        color: white;
-        font-weight: bold;
-    }
-
-    /* ===================== Hero ===================== */
+    /* Hero Section */
     .content-wrapper {
         max-width: 1200px;
         margin: 0 auto;
@@ -280,7 +212,67 @@
             background-color: #386782;
         }
 
-    /* ===================== Stories & Chefs ===================== */
+    /* Search */
+    .search-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto 30px auto;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .search-input {
+        width: 100%;
+        flex-grow: 1;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 1.1rem;
+        border: 1px solid #ced4da;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .search-input:focus {
+            border-color: #6a994e;
+            box-shadow: 0 0 5px rgba(106, 153, 78, 0.4);
+        }
+
+    .btn-search {
+        background-color: #6a994e;
+        color: white;
+        font-weight: 600;
+        padding: 12px 28px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .btn-search:hover {
+            background-color: #543618;
+            transform: translateY(-2px);
+        }
+    @@media (min-width: 768px) {
+        .search-container
+
+    {
+        flex-direction: row;
+    }
+
+    .search-input {
+        margin-right: 10px;
+    }
+
+    }
+
+    /* Stories & Chefs */
     .stories-section, .chefs-section {
         padding: 30px 0;
     }
@@ -345,35 +337,38 @@
 @code {
     private string CustomerName = "";
     private string profileImage = "/images/defultpic.jpg";
-    List<Recipes> recipes;
+    private List<Recipes> recipes;
     private string SearchRec = "";
+
     protected override async Task OnInitializedAsync()
     {
         ProtectedBrowserStorageResult<string> resultName = await MySession.GetAsync<string>("firstname");
         ProtectedBrowserStorageResult<string> resultProfileImage = await MySession.GetAsync<string>("profilepic");
-        if (!resultName.Success || resultName.Value == null)
+
+        if (!resultName.Success || string.IsNullOrEmpty(resultName.Value))
         {
             navigationManager.NavigateTo("/Login");
+            return;
         }
-        else
-        {
-            CustomerName = resultName.Value;
-            if (resultProfileImage.Success && !string.IsNullOrEmpty(resultProfileImage.Value))
-            {
-                profileImage = resultProfileImage.Value;
-            }
-            RecipeDB dB = new RecipeDB();
-            recipes = await dB.GetAllAsync();
 
+        CustomerName = resultName.Value;
+
+        if (resultProfileImage.Success && !string.IsNullOrEmpty(resultProfileImage.Value))
+        {
+            profileImage = resultProfileImage.Value;
         }
+
+        RecipeDB dB = new RecipeDB();
+        recipes = await dB.GetAllAsync();
     }
 
     private async Task SearchBtn()
     {
-        RecipeDB p = new RecipeDB();
-        recipes = (List<Recipes>)await p.SearchRecipesByNameAsync(SearchRec);
+        RecipeDB dB = new RecipeDB();
+        recipes = (List<Recipes>)await dB.SearchRecipesByNameAsync(SearchRec);
+        StateHasChanged();
     }
-   
+
     private void GoToMakeRecipe()
     {
         navigationManager.NavigateTo("/makeRecipe");

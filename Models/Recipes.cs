@@ -11,20 +11,20 @@ namespace Models
         public int RecipeID { get; set; }
         public int UserID { get; set; }
         public string Name { get; set; }
-        public int PrepTime { get; set; }
         public string RecipeInstructions { get; set; }
+        public string Story { get; set; }
         public string ImageURL { get; set; }
 
         public Recipes() { }
 
-        public Recipes(int recipeID, int userID, string name, int prepTime, string recipeInstructions, string imageURL)
+        public Recipes(int recipeID, int userID, string name, int prepTime, string recipeInstructions, string story, string imageURL)
         {
             this.RecipeID = recipeID;
             this.UserID = userID;
             this.Name = name;
-            this.PrepTime = prepTime;
-            RecipeInstructions = recipeInstructions;
-            ImageURL = imageURL;
+            this.RecipeInstructions = recipeInstructions;
+            this.Story = story;                 
+            this.ImageURL = imageURL;
         }
     }
 }

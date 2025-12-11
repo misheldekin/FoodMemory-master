@@ -23,24 +23,22 @@ namespace DBL
         protected override async Task<RecipeIngredient> CreateModelAsync(object[] row)
         {
             RecipeIngredient ri = new RecipeIngredient();
-            ri.recipe_ingredientsID = int.Parse(row[0].ToString());
-            ri.RecipeID = int.Parse(row[1].ToString());
-            ri.IngredientID = int.Parse(row[2].ToString());
-            ri.Quantity = double.Parse(row[3].ToString());
-            ri.Size = row[4].ToString();
+            ri.RecipeID = int.Parse(row[0].ToString());
+            ri.IngredientID = int.Parse(row[1].ToString());
+            ri.Quantity = double.Parse(row[2].ToString());
+            ri.Size = row[3].ToString();
             return ri;
         }
 
         public async Task<int> InsertAsync(RecipeIngredient c)
         {
             Dictionary<string, object> fill = new Dictionary<string, object>()
-        {
-          {"recipe_ingredientsID"  , c.recipe_ingredientsID},
-          { "recipe_id", c.RecipeID },
-          { "ingredient_id", c.IngredientID },
-          { "quantity", c.Quantity },
-          { "size", c.Size }
-        };
+    {
+        { "recipe_id", c.RecipeID },
+        { "ingredient_id", c.IngredientID },
+        { "quantity", c.Quantity },
+        { "size", c.Size }
+    };
             return await base.InsertAsync(fill);
         }
 

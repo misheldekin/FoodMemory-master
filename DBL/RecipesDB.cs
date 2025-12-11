@@ -26,8 +26,8 @@ namespace DBL
             recipe.RecipeID = int.Parse(row[0].ToString());
             recipe.UserID = int.Parse(row[1].ToString());
             recipe.Name = row[2].ToString();
-            recipe.PrepTime =int.Parse(row[3].ToString());
-            recipe.RecipeInstructions = row[4].ToString();
+            recipe.RecipeInstructions = row[3].ToString();
+            recipe.Story = row[4].ToString();
             recipe.ImageURL = row[5].ToString();
             return recipe;
         }
@@ -41,11 +41,11 @@ namespace DBL
         {
             Dictionary<string, object> fillValues = new Dictionary<string, object>()
             {
-                { "userID", recipe.UserID },
+                { "user_ID", recipe.UserID },  
                 { "name", recipe.Name },
-                { "prep_time", recipe.PrepTime },
-                { "recipescol", recipe.RecipeInstructions},
-                { "Picture", recipe.ImageURL   }
+                { "preparation_steps", recipe.RecipeInstructions },
+                { "story", recipe.Story },
+                { "image_url", recipe.ImageURL }
             };
             return (Recipes)await base.InsertGetObjAsync(fillValues);
         }
@@ -54,11 +54,11 @@ namespace DBL
         {
             Dictionary<string, object> fillValues = new Dictionary<string, object>();
             Dictionary<string, object> filterValues = new Dictionary<string, object>();
-            fillValues.Add("userID", recipe.UserID);
+            fillValues.Add("user_ID", recipe.UserID);  
             fillValues.Add("name", recipe.Name);
-            fillValues.Add("prep_time", recipe.PrepTime);
-            fillValues.Add("recipescol", recipe.RecipeInstructions);
-            fillValues.Add("Picture", recipe.ImageURL);
+            fillValues.Add("preparation_steps", recipe.RecipeInstructions);
+            fillValues.Add("story", recipe.Story);
+            fillValues.Add("image_url", recipe.ImageURL);
             filterValues.Add("idRecipes", recipe.RecipeID);
             return await base.UpdateAsync(fillValues, filterValues);
         }
@@ -77,7 +77,7 @@ namespace DBL
         public async Task<List<Recipes>> GetRecipesByUserAsync(int userId)
         {
             Dictionary<string, object> p = new Dictionary<string, object>();
-            p.Add("userID", userId);
+            p.Add("user_ID", userId);  
             return (List<Recipes>)await SelectAllAsync(p);
         }
 
@@ -97,17 +97,5 @@ namespace DBL
             filterValues.Add("idRecipes", recipeId);
             return await base.UpdateAsync(fillValues, filterValues);
         }
-
-        public async Task<int> UpdatePrepTimeAsync(int recipeId, int prepTime,int RecipeInstructions)
-        {
-            Dictionary<string, object> fillValues = new Dictionary<string, object>();
-            Dictionary<string, object> filterValues = new Dictionary<string, object>();
-            fillValues.Add("prep_time", prepTime);
-            filterValues.Add("recipescol", RecipeInstructions);
-            filterValues.Add("idRecipes", recipeId);
-            return await base.UpdateAsync(fillValues, filterValues);
-        }
-
-     
     }
 }

@@ -4,6 +4,108 @@
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject NavigationManager Navigation
 @inject ProtectedSessionStorage MySession
+@inject IJSRuntime JSRuntime
+
+<div class="page-container">
+    <h2>הוספת מתכון חדש</h2>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="error-message">@ErrorMessage</div>
+    }
+
+    @if (!string.IsNullOrEmpty(SuccessMessage))
+    {
+        <div class="success-message">@SuccessMessage</div>
+    }
+
+    <!-- שם המתכון -->
+    <label>שם המתכון:</label>
+    <input @bind="RecipeName" placeholder="הקלידי שם למתכון" />
+
+    <!-- הוספת רכיבים -->
+    <label>בחר רכיב:</label>
+    <div class="flex-row">
+        <select @bind="SelectedIngredient">
+            <option value="">-- בחר --</option>
+            @foreach (var ingredient in Ingredients)
+            {
+                <option value="@ingredient">@ingredient</option>
+            }
+        </select>
+        <button class="btn btn-new" @onclick="ShowAddIngredient">הוסף רכיב חדש</button>
+    </div>
+
+    @if (AddingNew)
+    {
+        <div style="margin-top:10px;">
+            <label>שם רכיב חדש:</label>
+            <input @bind="NewIngredientName" />
+            <button class="btn btn-add" @onclick="SaveNewIngredient">הוסף רכיב</button>
+        </div>
+    }
+
+    <label>כמות:</label>
+    <input type="number" @bind="Amount" />
+
+    <label>גודל:</label>
+    <input @bind="Size" />
+
+    <button class="btn btn-add" @onclick="AddToList">הוסף לרשימת המרכיבים</button>
+
+    <!-- רשימת רכיבים -->
+    <label>רשימת רכיבים:</label>
+    <div class="ingredients-box">
+        @if (RecipeIngredients.Count == 0)
+        {
+            <div style="color: #999;">עדיין לא נוספו רכיבים</div>
+        }
+        else
+        {
+            @foreach (var ingredient in RecipeIngredients)
+            {
+                <div>@ingredient.Name - @ingredient.Amount @ingredient.Size</div>
+            }
+        }
+    </div>
+
+    <!-- תמונה -->
+    <label>תמונה:</label>
+    <div class="profile-container">
+        <div class="profile-section">
+            <div class="profile-image-container">
+                <img src="@ImageURL" alt="תמונת מתכון" class="current-profile-image" />
+            </div>
+        </div>
+        <input @bind="ImageURL" placeholder="https://image.jpg" />
+    </div>
+
+    <label>סיפור המתכון:</label>
+    <textarea @bind="Story"></textarea>
+
+    <label>הוראות הכנה:</label>
+    <textarea @bind="Instructions"></textarea>
+
+    <div style="display:flex; justify-content:space-between; margin-top:20px;">
+        <button class="btn btn-new" @onclick="GoBack">
+            חזרה לדף הבית
+        </button>
+
+        <button class="btn btn-add" @onclick="SaveRecipe" disabled="@IsSaving">
+            @if (IsSaving)
+            {
+                <span>שומר...</span>
+            }
+            else
+            {
+                <span>שמור מתכון</span>
+            }
+        </button>
+    </div>
+
+
+  
+</div>
 
 <style>
     .page-container {
@@ -62,13 +164,17 @@
         margin-right: 5px;
     }
 
+    .btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
     .ingredients-box {
         background: #f7f7ff;
         border-radius: 10px;
         padding: 15px;
         border: 1px solid #dcdcff;
         margin-top: 10px;
-        white-space: pre-line;
         min-height: 80px;
     }
 
@@ -81,143 +187,318 @@
         .flex-row select {
             flex: 1;
         }
-</style>
 
-<div class="page-container">
-    <h2>הוספת מתכון חדש</h2>
-
-    <!-- שדה שם המתכון -->
-    <label>שם המתכון:</label>
-    <input @bind="RecipeName" placeholder="הקלידי שם למתכון" />
-
-    <label>בחר רכיב:</label>
-    <div class="flex-row">
-        <select @bind="SelectedIngredient">
-            <option value="">-- בחר --</option>
-            @for (int i = 0; i < Ingredients.Count; i++)
-            {
-                <option value="@Ingredients[i]">@Ingredients[i]</option>
-            }
-        </select>
-        <button class="btn btn-new" @onclick="ShowAddIngredient">הוסף רכיב חדש</button>
-    </div>
-
-    @if (AddingNew)
-    {
-        <div style="margin-top:10px;">
-            <label>שם רכיב חדש:</label>
-            <input @bind="NewIngredientName" />
-            <button class="btn btn-add" @onclick="SaveNewIngredient">הוסף רכיב</button>
-        </div>
+    .profile-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 10px;
     }
 
-    <label>כמות:</label>
-    <input type="number" @bind="Amount" />
+    .profile-image-container img {
+        max-width: 100%;
+        border-radius: 10px;
+    }
 
-    <label>גודל:</label>
-    <input @bind="Size" />
+    .error-message {
+        background: #ffebee;
+        color: #c62828;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #ef5350;
+    }
 
-    <button class="btn btn-add" @onclick="AddToList">הוסף לרשימת המרכיבים</button>
-
-    <label>רשימת רכיבים:</label>
-    <div class="ingredients-box">
-        @IngredientsText
-    </div>
-
-    <label>הוראות הכנה:</label>
-    <textarea @bind="Instructions"></textarea>
-
-    <!-- כפתור שמירה בסוף -->
-    <button class="btn btn-add" style="margin-top:20px;" @onclick="SaveRecipe">שמור מתכון</button>
-</div>
+    .success-message {
+        background: #e8f5e9;
+        color: #2e7d32;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #66bb6a;
+    }
+</style>
 
 @code {
-    public List<string> Ingredients = new List<string>();
+    private List<string> Ingredients = new List<string>();
+    private string RecipeName = "";
+    private string Story = "";
+    private string Instructions = "";
+    private string ImageURL = "";
 
-    public string RecipeName = "";
+    private string SelectedIngredient = "";
+    private int Amount = 0;
+    private string Size = "";
 
-    public string SelectedIngredient = "";
-    public int Amount = 0;
-    public string Size = "";
+    private List<RecipeIngredientModel> RecipeIngredients = new List<RecipeIngredientModel>();
+    private bool AddingNew = false;
+    private string NewIngredientName = "";
 
-    public string IngredientsText = "";
-    public string Instructions = "";
-
-    public bool AddingNew = false;
-    public string NewIngredientName = "";
+    private int CurrentUserID = 0;
+    private bool IsSaving = false;
+    private string ErrorMessage = "";
+    private string SuccessMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        IngredientDB db = new IngredientDB();
-        List<Ingredient> list = await db.GetAllAsync();
-
-        if (list == null)
+        try
         {
-            return;
+            await JSRuntime.InvokeVoidAsync("console.log", "=== OnInitializedAsync Started ===");
+
+            ProtectedBrowserStorageResult<int> resultID = await MySession.GetAsync<int>("customerid");
+            await JSRuntime.InvokeVoidAsync("console.log", $"Session result - Success: {resultID.Success}, Value: {resultID.Value}");
+
+            if (!resultID.Success || resultID.Value <= 0)
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", "No valid user ID, redirecting to login");
+                Navigation.NavigateTo("/Login");
+                return;
+            }
+
+            CurrentUserID = resultID.Value;
+            await JSRuntime.InvokeVoidAsync("console.log", $"Current User ID set to: {CurrentUserID}");
+
+            IngredientDB db = new IngredientDB();
+            await JSRuntime.InvokeVoidAsync("console.log", "Fetching ingredients from DB...");
+
+            List<Ingredient> list = await db.GetAllAsync();
+            await JSRuntime.InvokeVoidAsync("console.log", $"Ingredients fetched: {list?.Count ?? 0}");
+
+            if (list != null)
+            {
+                foreach (var ingredient in list)
+                {
+                    Ingredients.Add(ingredient.IngredientName);
+                }
+                await JSRuntime.InvokeVoidAsync("console.log", $"Ingredients list populated with {Ingredients.Count} items");
+            }
         }
-
-        for (int i = 0; i < list.Count; i++)
+        catch (Exception ex)
         {
-            Ingredients.Add(list[i].IngredientName);
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error in OnInitializedAsync: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("console.error", ex.StackTrace);
+            ErrorMessage = $"שגיאה בטעינת הדף: {ex.Message}";
         }
     }
 
-    public void ShowAddIngredient()
+    private void ShowAddIngredient()
     {
         AddingNew = true;
     }
 
-    public async Task SaveNewIngredient()
+    private async Task SaveNewIngredient()
     {
-        if (NewIngredientName != null && NewIngredientName.Trim() != "")
+        ErrorMessage = "";
+        SuccessMessage = "";
+
+        if (string.IsNullOrWhiteSpace(NewIngredientName))
         {
-            IngredientDB db = new IngredientDB();
-            Ingredient item = new Ingredient();
-            item.IngredientName = NewIngredientName;
-
-            await db.InsertGetObjAsync(item);
-
-            Ingredients.Add(NewIngredientName);
-            SelectedIngredient = NewIngredientName;
-
-            NewIngredientName = "";
-            AddingNew = false;
-        }
-    }
-
-    public void AddToList()
-    {
-        if (SelectedIngredient != null && SelectedIngredient.Trim() != "" &&
-            Amount > 0 && Size != null && Size.Trim() != "")
-        {
-            IngredientsText = IngredientsText + SelectedIngredient + "  " + Amount + "  " + Size + "\n";
-        }
-
-        SelectedIngredient = "";
-        Amount = 0;
-        Size = "";
-    }
-
-    public async Task SaveRecipe()
-    {
-        if (RecipeName == null || RecipeName.Trim() == "")
-        {
+            ErrorMessage = "נא להזין שם רכיב";
             return;
         }
 
-        RecipeDB db = new RecipeDB();
-        Recipes newRecipe = new Recipes();
-        newRecipe.Name = RecipeName.Trim();
-        newRecipe.RecipeInstructions = Instructions;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", $"Saving new ingredient: {NewIngredientName}");
 
-        await db.InsertGetObjAsync(newRecipe);
+            IngredientDB db = new IngredientDB();
+            Ingredient item = new Ingredient();
+            item.IngredientName = NewIngredientName.Trim();
 
-        RecipeName = "";
-        IngredientsText = "";
-        Instructions = "";
+            var result = await db.InsertGetObjAsync(item);
+            await JSRuntime.InvokeVoidAsync("console.log", $"Ingredient saved with ID: {result?.IngredientID}");
+
+            Ingredients.Add(NewIngredientName.Trim());
+            SelectedIngredient = NewIngredientName.Trim();
+            NewIngredientName = "";
+            AddingNew = false;
+
+            SuccessMessage = "רכיב נוסף בהצלחה!";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error saving ingredient: {ex.Message}");
+            ErrorMessage = $"שגיאה בשמירת הרכיב: {ex.Message}";
+        }
+    }
+
+    private async Task AddToList()
+    {
+        ErrorMessage = "";
+
+        await JSRuntime.InvokeVoidAsync("console.log", $"AddToList - Ingredient: {SelectedIngredient}, Amount: {Amount}, Size: {Size}");
+
+        if (string.IsNullOrWhiteSpace(SelectedIngredient))
+        {
+            ErrorMessage = "נא לבחור רכיב";
+            return;
+        }
+
+        if (Amount <= 0)
+        {
+            ErrorMessage = "נא להזין כמות תקינה";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Size))
+        {
+            ErrorMessage = "נא להזין גודל";
+            return;
+        }
+
+        RecipeIngredientModel model = new RecipeIngredientModel();
+        model.Name = SelectedIngredient;
+        model.Amount = Amount;
+        model.Size = Size;
+        RecipeIngredients.Add(model);
+
+        await JSRuntime.InvokeVoidAsync("console.log", $"Ingredient added to list. Total ingredients: {RecipeIngredients.Count}");
+
         SelectedIngredient = "";
         Amount = 0;
         Size = "";
+
+        SuccessMessage = "רכיב נוסף לרשימה!";
+    }
+
+    private async Task SaveRecipe()
+    {
+        ErrorMessage = "";
+        SuccessMessage = "";
+        IsSaving = true;
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", "SaveRecipe Started");
+            await JSRuntime.InvokeVoidAsync("console.log", $"Recipe Name: {RecipeName}");
+            await JSRuntime.InvokeVoidAsync("console.log", $"User ID: {CurrentUserID}");
+            await JSRuntime.InvokeVoidAsync("console.log", $"Ingredients Count: {RecipeIngredients.Count}");
+
+            if (string.IsNullOrWhiteSpace(RecipeName))
+            {
+                ErrorMessage = "נא להזין שם מתכון";
+                await JSRuntime.InvokeVoidAsync("console.warn", "Recipe name is empty");
+                return;
+            }
+
+            if (RecipeIngredients.Count == 0)
+            {
+                ErrorMessage = "נא להוסיף לפחות רכיב אחד";
+                await JSRuntime.InvokeVoidAsync("console.warn", "No ingredients added");
+                return;
+            }
+
+            if (CurrentUserID <= 0)
+            {
+                ErrorMessage = "שגיאה במזהה משתמש";
+                await JSRuntime.InvokeVoidAsync("console.error", "Invalid user ID");
+                return;
+            }
+
+            await JSRuntime.InvokeVoidAsync("console.log", "Creating recipe object...");
+            RecipeDB db = new RecipeDB();
+            Recipes newRecipe = new Recipes();
+            newRecipe.UserID = CurrentUserID;
+            newRecipe.Name = RecipeName.Trim();
+            newRecipe.Story = Story?.Trim();
+            newRecipe.RecipeInstructions = Instructions?.Trim();
+            newRecipe.ImageURL = ImageURL?.Trim();
+
+            await JSRuntime.InvokeVoidAsync("console.log", "Inserting recipe to DB...");
+            Recipes insertedRecipe = await db.InsertGetObjAsync(newRecipe);
+
+            if (insertedRecipe == null)
+            {
+                ErrorMessage = "שגיאה בשמירת המתכון - התוצאה ריקה";
+                await JSRuntime.InvokeVoidAsync("console.error", "insertedRecipe is null");
+                return;
+            }
+
+            await JSRuntime.InvokeVoidAsync("console.log", $"Recipe inserted with ID: {insertedRecipe.RecipeID}");
+
+            if (insertedRecipe.RecipeID <= 0)
+            {
+                ErrorMessage = $"שגיאה: מזהה מתכון לא תקין ({insertedRecipe.RecipeID})";
+                await JSRuntime.InvokeVoidAsync("console.error", $"Invalid RecipeID: {insertedRecipe.RecipeID}");
+                return;
+            }
+
+            await JSRuntime.InvokeVoidAsync("console.log", "Saving ingredients...");
+            RecipeIngredientDB ingredientDb = new RecipeIngredientDB();
+            IngredientDB ingDB = new IngredientDB();
+
+            int savedIngredients = 0;
+            for (int i = 0; i < RecipeIngredients.Count; i++)
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", $"Processing ingredient {i + 1}/{RecipeIngredients.Count}: {RecipeIngredients[i].Name}");
+
+                var ingredientsList = await ingDB.SearchIngredientsByNameAsync(RecipeIngredients[i].Name);
+                Ingredient ing = ingredientsList?.FirstOrDefault();
+
+                if (ing == null)
+                {
+                    await JSRuntime.InvokeVoidAsync("console.warn", $"Ingredient not found in DB: {RecipeIngredients[i].Name}");
+                    continue;
+                }
+
+                await JSRuntime.InvokeVoidAsync("console.log", $"Found ingredient ID: {ing.IngredientID}");
+
+                RecipeIngredient ri = new RecipeIngredient();
+                ri.RecipeID = insertedRecipe.RecipeID;
+                ri.IngredientID = ing.IngredientID;
+                ri.Quantity = RecipeIngredients[i].Amount;
+                ri.Size = RecipeIngredients[i].Size;
+
+                await JSRuntime.InvokeVoidAsync("console.log", $"Inserting: RecipeID={ri.RecipeID}, IngredientID={ri.IngredientID}, Quantity={ri.Quantity}, Size={ri.Size}");
+
+                var insertResult = await ingredientDb.InsertAsync(ri);
+                await JSRuntime.InvokeVoidAsync("console.log", $"Insert result: {insertResult}");
+                savedIngredients++;
+            }
+
+            await JSRuntime.InvokeVoidAsync("console.log", $"Saved {savedIngredients}/{RecipeIngredients.Count} ingredients");
+
+            RecipeName = "";
+            Story = "";
+            Instructions = "";
+            ImageURL = "";
+            RecipeIngredients.Clear();
+            SelectedIngredient = "";
+            Amount = 0;
+            Size = "";
+
+            SuccessMessage = $"המתכון נשמר בהצלחה! מזהה: {insertedRecipe.RecipeID}, רכיבים: {savedIngredients}";
+            await JSRuntime.InvokeVoidAsync("console.log",  "SaveRecipe Completed Successfully");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"שגיאה: {ex.Message}";
+            await JSRuntime.InvokeVoidAsync("console.error", "SaveRecipe Error");
+            await JSRuntime.InvokeVoidAsync("console.error", ex.Message);
+            await JSRuntime.InvokeVoidAsync("console.error", ex.StackTrace);
+
+            if (ex.InnerException != null)
+            {
+                await JSRuntime.InvokeVoidAsync("console.error", "Inner Exception:");
+                await JSRuntime.InvokeVoidAsync("console.error", ex.InnerException.Message);
+            }
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private class RecipeIngredientModel
+    {
+        public string Name { get; set; }
+        public int Amount { get; set; }
+        public string Size { get; set; }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/AfterLog");
     }
 }
-
