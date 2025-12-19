@@ -1,6 +1,6 @@
 ﻿@page "/AfterLog"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject ProtectedSessionStorage MySession
+@inject ProtectedSessionStorage Session
 @inject NavigationManager navigationManager
 @using DBL
 @using Models
@@ -9,9 +9,8 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-bar">
-                <a href="#">מתכונים</a>
-                <a href="#">סיפורים</a>
-                <a href="#">מצא שף</a>
+                <a href="/MyRecipes" style="direction: rtl;">המתכונים שלי</a>
+                <a href="#">שפים</a>
             </nav>
             <div class="user-profile" @onclick="GoToProfile" title="עדכון פרופיל">
                 <img src="@profileImage" alt="פרופיל" class="profile-icon">
@@ -272,24 +271,47 @@
 
     }
 
-    /* Stories & Chefs */
-    .stories-section, .chefs-section {
-        padding: 30px 0;
-    }
-
-        .stories-section h2, .chefs-section h2 {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-    .stories-list, .chefs-list {
+    .stories-list {
         display: flex;
         gap: 20px;
         overflow-x: auto;
+        padding-bottom: 10px;
     }
 
-    .story-card, .chef-card {
+    .story-card {
+        flex: 0 0 180px; /* קבוע – לא נשבר שורה */
+        max-width: 180px;
+        text-align: center;
+        padding: 0;
+        border-radius: 16px;
+        background-color: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+
+        .story-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .story-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .story-card p {
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+    .chefs-list {
+        display: flex;
+        gap: 20px;
+    }
+
+    .chef-card {
         flex: 1;
         max-width: calc(33.33% - 14px);
         text-align: center;
@@ -300,22 +322,8 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
-        .story-card:hover, .chef-card:hover {
+        .chef-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-        }
-
-        .story-card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .story-card p, .chef-card p {
-            font-weight: bold;
-            color: #333;
         }
 
         .chef-card img {
@@ -332,6 +340,7 @@
             font-size: 0.9em;
             color: #777;
         }
+
 </style>
 
 @code {
@@ -342,8 +351,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ProtectedBrowserStorageResult<string> resultName = await MySession.GetAsync<string>("firstname");
-        ProtectedBrowserStorageResult<string> resultProfileImage = await MySession.GetAsync<string>("profilepic");
+        ProtectedBrowserStorageResult<string> resultName = await Session.GetAsync<string>("firstname");
+        ProtectedBrowserStorageResult<string> resultProfileImage = await Session.GetAsync<string>("profilepic");
 
         if (!resultName.Success || string.IsNullOrEmpty(resultName.Value))
         {

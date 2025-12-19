@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using DBL
 @using Models
-@inject ProtectedSessionStorage MySession
+@inject ProtectedSessionStorage Session
 @inject NavigationManager navigationManager
 @inject IWebHostEnvironment Environment
 
@@ -420,7 +420,7 @@
     {
         try
         {
-            var resultId = await MySession.GetAsync<int>("customerid");
+            var resultId = await Session.GetAsync<int>("customerid");
 
             if (!resultId.Success || resultId.Value == 0)
             {
@@ -493,7 +493,7 @@
             if (result > 0)
             {
                 currentCustomer.ProfileImage = imageUrl;
-                await MySession.SetAsync("profilepic", imageUrl);
+                await Session.SetAsync("profilepic", imageUrl);
                 imageMessage = "תמונת הפרופיל עודכנה בהצלחה!";
                 imageMessageClass = "success";
             }
@@ -534,7 +534,7 @@
             if (result > 0)
             {
                 currentCustomer.Name = newFirstName;
-                await MySession.SetAsync("firstname", newFirstName);
+                await Session.SetAsync("firstname", newFirstName);
                 nameMessage = "השם הפרטי עודכן בהצלחה!";
                 nameMessageClass = "success";
                 newFirstName = "";
@@ -575,7 +575,7 @@
             if (result > 0)
             {
                 currentCustomer.LastName = newLastName;
-                await MySession.SetAsync("lastname", newLastName);
+                await Session.SetAsync("lastname", newLastName);
                 lastNameMessage = "שם המשפחה עודכן בהצלחה!";
                 lastNameMessageClass = "success";
                 newLastName = "";
@@ -623,7 +623,7 @@
             if (result > 0)
             {
                 currentCustomer.Email = newEmail;
-                await MySession.SetAsync("email", newEmail);
+                await Session.SetAsync("email", newEmail);
                 emailMessage = "האימייל עודכן בהצלחה!";
                 emailMessageClass = "success";
                 newEmail = "";
@@ -685,7 +685,7 @@
             if (result > 0)
             {
                 currentCustomer.Password = newPassword;
-                await MySession.SetAsync("password", newPassword);
+                await Session.SetAsync("password", newPassword);
                 passwordMessage = "הסיסמה עודכנה בהצלחה!";
                 passwordMessageClass = "success";
                 currentPassword = "";

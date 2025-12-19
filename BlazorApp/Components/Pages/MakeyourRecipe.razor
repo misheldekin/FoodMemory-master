@@ -3,7 +3,7 @@
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject NavigationManager Navigation
-@inject ProtectedSessionStorage MySession
+@inject ProtectedSessionStorage Session
 @inject IJSRuntime JSRuntime
 
 <div class="page-container">
@@ -245,7 +245,7 @@
         {
             await JSRuntime.InvokeVoidAsync("console.log", "=== OnInitializedAsync Started ===");
 
-            ProtectedBrowserStorageResult<int> resultID = await MySession.GetAsync<int>("customerid");
+            ProtectedBrowserStorageResult<int> resultID = await Session.GetAsync<int>("customerid");
             await JSRuntime.InvokeVoidAsync("console.log", $"Session result - Success: {resultID.Success}, Value: {resultID.Value}");
 
             if (!resultID.Success || resultID.Value <= 0)

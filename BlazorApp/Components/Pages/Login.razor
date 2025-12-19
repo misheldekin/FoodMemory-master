@@ -3,7 +3,7 @@
 @using DBL
 @inject IJSRuntime js
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject ProtectedSessionStorage MySession
+@inject ProtectedSessionStorage Session
 @inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
 
 <div class="login-page d-flex justify-content-center align-items-center vh-100" dir="rtl">
@@ -531,16 +531,16 @@
 
         if (c != null)
         {
-            await MySession.SetAsync("customerid", c.CustomerID);  
-            await MySession.SetAsync("firstname", c.Name);
-            await MySession.SetAsync("email", c.Email);
-            await MySession.SetAsync("profilepic", c.ProfileImage);
+            await Session.SetAsync("customerid", c.CustomerID);
+            await Session.SetAsync("firstname", c.Name);
+            await Session.SetAsync("email", c.Email);
+            await Session.SetAsync("profilepic", c.ProfileImage);
 
             string profileUrl = !string.IsNullOrEmpty(c.ProfileImage) ?
                                 c.ProfileImage :
                                 "/images/defultpic.jpg";
 
-            await MySession.SetAsync("profilepic", profileUrl);
+            await Session.SetAsync("profilepic", profileUrl);
             navigationManager.NavigateTo("/AfterLog");
         }
     }

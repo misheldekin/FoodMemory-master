@@ -1,0 +1,158 @@
+﻿@page "/MyRecipes"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
+
+<h2>המתכונים שלי</h2>
+@if (recipes == null)
+{
+    <p>טוען מתכונים...</p>
+}
+else if (recipes.Count == 0)
+{
+    <p>עדיין לא הוספת מתכונים 🍽️</p>
+}
+else
+{
+    <div class="stories-list">
+        @for (int i = 0; i < recipes.Count; i++)
+        {
+            int currentIndex = i;
+            <div class="recipe-card-wrapper">
+                <a href="/Recipe/@recipes[currentIndex].RecipeID" class="story-card-link">
+                    <div class="story-card">
+                        <img src="@(string.IsNullOrEmpty(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)">
+                        <p>@recipes[currentIndex].Name</p>
+                    </div>
+                </a>
+                <button class="edit-btn" @onclick="@(() => EditRecipe(recipes[currentIndex].RecipeID))">
+                    ✏️ ערוך
+                </button>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    h2 {
+        text-align: center;
+        margin: 30px 0;
+        color: #2c3e50;
+        font-weight: 700;
+        direction: rtl;
+    }
+
+    .stories-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 25px;
+        padding: 20px;
+        direction: rtl;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .recipe-card-wrapper {
+        position: relative;
+    }
+
+    .story-card-link {
+        text-decoration: none !important;
+        color: inherit;
+        display: block;
+    }
+
+    .story-card {
+        background: #ffffff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease-in-out;
+        text-align: center;
+        border: 1px solid #f0f0f0;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+        .story-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .story-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 2px solid #f9f9f9;
+        }
+
+        .story-card p {
+            padding: 15px 10px;
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #34495e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    .edit-btn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        transition: all 0.3s ease;
+        z-index: 10;
+        direction: rtl;
+    }
+
+        .edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+            background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+        }
+
+        .edit-btn:active {
+            transform: translateY(0);
+        }
+
+    p {
+        text-align: center;
+        font-family: sans-serif;
+        color: #7f8c8d;
+    }
+</style>
+
+@code {
+    List<Recipes> recipes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ProtectedBrowserStorageResult<int> userIdResult = await Session.GetAsync<int>("customerid");
+        if (!userIdResult.Success)
+        {
+            Nav.NavigateTo("/AfterLog");
+            return;
+        }
+        int userId = userIdResult.Value;
+        RecipeDB recipeDB = new RecipeDB();
+        recipes = await recipeDB.GetRecipesByUserAsync(userId);
+    }
+
+    void EditRecipe(int recipeId)
+    {
+        Nav.NavigateTo($"/edit-recipe/{recipeId}");
+    }
+}
