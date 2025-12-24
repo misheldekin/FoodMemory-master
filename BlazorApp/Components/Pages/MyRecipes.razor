@@ -5,40 +5,90 @@
 @inject ProtectedSessionStorage Session
 @inject NavigationManager Nav
 
-<h2>המתכונים שלי</h2>
-@if (recipes == null)
-{
-    <p>טוען מתכונים...</p>
-}
-else if (recipes.Count == 0)
-{
-    <p>עדיין לא הוספת מתכונים 🍽️</p>
-}
-else
-{
-    <div class="stories-list">
-        @for (int i = 0; i < recipes.Count; i++)
-        {
-            int currentIndex = i;
-            <div class="recipe-card-wrapper">
-                <a href="/Recipe/@recipes[currentIndex].RecipeID" class="story-card-link">
-                    <div class="story-card">
-                        <img src="@(string.IsNullOrEmpty(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)">
-                        <p>@recipes[currentIndex].Name</p>
-                    </div>
-                </a>
-                <button class="edit-btn" @onclick="@(() => EditRecipe(recipes[currentIndex].RecipeID))">
-                    ✏️ ערוך
-                </button>
-            </div>
-        }
-    </div>
-}
+<div class="page-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">
+        ← חזרה
+    </button>
+
+    <h2>המתכונים שלי</h2>
+
+    @if (recipes == null)
+    {
+        <p>טוען מתכונים...</p>
+    }
+    else if (recipes.Count == 0)
+    {
+        <p>עדיין לא הוספת מתכונים 🍽️</p>
+    }
+    else
+    {
+        <div class="stories-list">
+            @for (int i = 0; i < recipes.Count; i++)
+            {
+                int currentIndex = i;
+                <div class="recipe-card-wrapper">
+                    <a href="/Recipe/@recipes[currentIndex].RecipeID" class="story-card-link">
+                        <div class="story-card">
+                            <img src="@(string.IsNullOrEmpty(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)">
+                            <p>@recipes[currentIndex].Name</p>
+                        </div>
+                    </a>
+                    <button class="edit-btn" @onclick="@(() => EditRecipe(recipes[currentIndex].RecipeID))">
+                        ✏️ ערוך
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
 
 <style>
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Rubik', 'Assistant', sans-serif;
+    }
+
+    .page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        direction: rtl;
+        position: relative;
+    }
+
+    .back-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        transition: all 0.3s ease;
+        z-index: 100;
+        direction: rtl;
+    }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+            background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+        }
+
+        .back-btn:active {
+            transform: translateY(0);
+        }
+
     h2 {
         text-align: center;
         margin: 30px 0;
+        padding-top: 40px;
         color: #2c3e50;
         font-weight: 700;
         direction: rtl;
@@ -133,6 +183,20 @@ else
         font-family: sans-serif;
         color: #7f8c8d;
     }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .back-btn {
+            position: static;
+            display: block;
+            margin: 20px auto;
+            width: fit-content;
+        }
+
+        h2 {
+            padding-top: 10px;
+        }
+    }
 </style>
 
 @code {
@@ -154,5 +218,10 @@ else
     void EditRecipe(int recipeId)
     {
         Nav.NavigateTo($"/edit-recipe/{recipeId}");
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/AfterLog");
     }
 }

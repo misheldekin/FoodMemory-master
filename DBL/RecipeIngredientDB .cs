@@ -33,12 +33,12 @@ namespace DBL
         public async Task<int> InsertAsync(RecipeIngredient c)
         {
             Dictionary<string, object> fill = new Dictionary<string, object>()
-    {
+      {
         { "recipe_id", c.RecipeID },
         { "ingredient_id", c.IngredientID },
         { "quantity", c.Quantity },
         { "size", c.Size }
-    };
+      };
             return await base.InsertAsync(fill);
         }
 
@@ -50,6 +50,14 @@ namespace DBL
                 { "recipe_id", recipeId }
             };
             return (List<RecipeIngredient>)await SelectAllAsync(filter);
+        }
+        public async Task<int> DeleteByRecipeAsync(int recipeId)
+        {
+            Dictionary<string, object> filter = new Dictionary<string, object>()
+            {
+                { "recipe_id", recipeId }
+            };
+            return await base.DeleteAsync(filter);
         }
 
     }

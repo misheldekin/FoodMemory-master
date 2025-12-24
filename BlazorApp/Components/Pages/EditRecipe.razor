@@ -2,6 +2,7 @@
 @using Models
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Forms
 @inject ProtectedSessionStorage Session
 @inject NavigationManager Nav
 
@@ -15,31 +16,32 @@
     else
     {
         <div class="form-card">
-            <!-- שם המתכון -->
             <div class="form-group">
                 <label>שם המתכון</label>
                 <input type="text" class="form-input" @bind="recipe.Name" placeholder="שם המתכון" />
             </div>
 
-            <!-- שלבי ההכנה -->
             <div class="form-group">
                 <label>שלבי הכנה</label>
                 <textarea class="form-textarea" @bind="recipe.RecipeInstructions" rows="6" placeholder="תאר את שלבי ההכנה..."></textarea>
             </div>
 
-            <!-- הסיפור -->
             <div class="form-group">
                 <label>הסיפור מאחורי המתכון</label>
                 <textarea class="form-textarea" @bind="recipe.Story" rows="4" placeholder="ספר את הסיפור..."></textarea>
             </div>
 
-            <!-- URL תמונה -->
             <div class="form-group">
-                <label>קישור לתמונה</label>
-                <input type="text" class="form-input" @bind="recipe.ImageURL" placeholder="https://..." />
+                <label>תמונה</label>
+                <InputFile OnChange="HandleImageUpload" accept="image/*" class="file-input" />
+                @if (!string.IsNullOrEmpty(recipe.ImageURL))
+                {
+                    <div class="image-preview">
+                        <img src="@recipe.ImageURL" alt="תמונת המתכון" />
+                    </div>
+                }
             </div>
 
-            <!-- רכיבים קיימים -->
             <div class="ingredients-section">
                 <h3>🥗 רכיבים</h3>
 
@@ -52,11 +54,11 @@
                             <span class="ingredient-name">@GetIngredientName(recipeIngredients[index].IngredientID)</span>
                             <input type="number" class="quantity-input" @bind="recipeIngredients[index].Quantity" step="0.1" />
                             <input type="text" class="size-input" @bind="recipeIngredients[index].Size" placeholder="יחידה" />
+                            <button class="delete-btn" @onclick="() => RemoveFromList(index)">🗑️</button>
                         </div>
                     }
                 }
 
-                <!-- הוספת רכיב קיים -->
                 <div class="add-ingredient-section">
                     <h4>➕ הוסף רכיב קיים</h4>
                     <div class="add-ingredient-form">
@@ -76,7 +78,6 @@
                     </div>
                 </div>
 
-                <!-- הוספת רכיב חדש -->
                 <div class="add-ingredient-section">
                     <h4>✨ הוסף רכיב חדש למערכת</h4>
                     <div class="add-ingredient-form">
@@ -88,7 +89,6 @@
                 </div>
             </div>
 
-            <!-- כפתורי שמירה וביטול -->
             <div class="action-buttons">
                 <button class="btn-save" @onclick="SaveChanges">💾 שמור שינויים</button>
                 <button class="btn-cancel" @onclick="Cancel">❌ ביטול</button>
@@ -171,6 +171,32 @@
         min-height: 100px;
     }
 
+    .file-input {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        background: white;
+        border: 2px dashed #A4AC86;
+        border-radius: 12px;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+
+    .image-preview {
+        margin-top: 15px;
+        text-align: center;
+        padding: 15px;
+        background: white;
+        border-radius: 12px;
+    }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
     .ingredients-section {
         margin: 30px 0;
         padding: 25px;
@@ -239,22 +265,11 @@
         border-radius: 12px;
     }
 
-        .add-ingredient-section h4 {
-            color: #414833;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-
     .add-ingredient-form {
         display: flex;
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
-    }
-
-    .form-select {
-        flex: 1;
-        min-width: 200px;
     }
 
     .add-btn {
@@ -269,47 +284,26 @@
         white-space: nowrap;
     }
 
-        .add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.3);
-        }
-
-    .action-buttons {
-        display: flex;
-        gap: 15px;
-        margin-top: 30px;
-        justify-content: center;
-    }
-
-    .btn-save, .btn-cancel {
-        padding: 15px 40px;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
     .btn-save {
         background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
         color: white;
-        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
+        border: none;
+        padding: 15px 40px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
     }
-
-        .btn-save:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(65, 72, 51, 0.45);
-        }
 
     .btn-cancel {
         background: #e0e0e0;
         color: #555;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-right: 10px;
     }
-
-        .btn-cancel:hover {
-            background: #d0d0d0;
-        }
 
     .error-message {
         margin-top: 20px;
@@ -319,7 +313,6 @@
         border-radius: 10px;
         color: #cc0000;
         text-align: center;
-        font-weight: 500;
     }
 </style>
 
@@ -375,87 +368,65 @@
         return "לא ידוע";
     }
 
+    async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            IBrowserFile file = e.File;
+            long maxFileSize = 5 * 1024 * 1024;
+            using System.IO.Stream stream = file.OpenReadStream(maxFileSize);
+            using System.IO.MemoryStream ms = new System.IO.MemoryStream();
+            await stream.CopyToAsync(ms);
+            byte[] buffer = ms.ToArray();
+            recipe.ImageURL = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+        catch (Exception ex) { errorMessage = ex.Message; }
+    }
+
+    void RemoveFromList(int index) { recipeIngredients.RemoveAt(index); }
 
     async Task AddExistingIngredient()
     {
-        if (selectedIngredientId == 0)
-        {
-            errorMessage = "נא לבחור רכיב";
-            return;
-        }
-
-        RecipeIngredient ri = new RecipeIngredient
-        {
-            RecipeID = RecipeId,
-            IngredientID = selectedIngredientId,
-            Quantity = newQuantity,
-            Size = newSize
-        };
-
+        if (selectedIngredientId == 0) return;
+        RecipeIngredient ri = new RecipeIngredient { RecipeID = RecipeId, IngredientID = selectedIngredientId, Quantity = newQuantity, Size = newSize };
         recipeIngredients.Add(ri);
-        selectedIngredientId = 0;
-        newQuantity = 0;
-        newSize = "";
-        errorMessage = "";
+        selectedIngredientId = 0; newQuantity = 0; newSize = "";
     }
 
     async Task AddNewIngredient()
     {
-        if (string.IsNullOrWhiteSpace(newIngredientName))
-        {
-            errorMessage = "נא להזין שם רכיב";
-            return;
-        }
-
+        if (string.IsNullOrWhiteSpace(newIngredientName)) return;
         IngredientDB ingredientDB = new IngredientDB();
-        Ingredient newIng = new Ingredient { IngredientName = newIngredientName };
-        Ingredient inserted = await ingredientDB.InsertGetObjAsync(newIng);
-
+        Ingredient inserted = await ingredientDB.InsertGetObjAsync(new Ingredient { IngredientName = newIngredientName });
         if (inserted != null)
         {
             allIngredients.Add(inserted);
             ingredientNames[inserted.IngredientID] = inserted.IngredientName;
-
-            RecipeIngredient ri = new RecipeIngredient
-            {
-                RecipeID = RecipeId,
-                IngredientID = inserted.IngredientID,
-                Quantity = newQuantity,
-                Size = newSize
-            };
-
-            recipeIngredients.Add(ri);
-            newIngredientName = "";
-            newQuantity = 0;
-            newSize = "";
-            errorMessage = "";
+            recipeIngredients.Add(new RecipeIngredient { RecipeID = RecipeId, IngredientID = inserted.IngredientID, Quantity = newQuantity, Size = newSize });
+            newIngredientName = ""; newQuantity = 0; newSize = "";
         }
     }
 
     async Task SaveChanges()
     {
-        RecipeDB recipeDB = new RecipeDB();
-        int result = await recipeDB.UpdateAsync(recipe);
-
-        if (result > 0)
+        try
         {
-            RecipeIngredientDB riDB = new RecipeIngredientDB();
-
-            for (int i = 0; i < recipeIngredients.Count; i++)
+            RecipeDB recipeDB = new RecipeDB();
+            int result = await recipeDB.UpdateAsync(recipe);
+            if (result > 0)
             {
-                await riDB.InsertAsync(recipeIngredients[i]);
+                RecipeIngredientDB riDB = new RecipeIngredientDB();
+                await riDB.DeleteByRecipeAsync(RecipeId);
+                for (int i = 0; i < recipeIngredients.Count; i++)
+                {
+                    recipeIngredients[i].RecipeID = RecipeId;
+                    await riDB.InsertAsync(recipeIngredients[i]);
+                }
+                Nav.NavigateTo("/MyRecipes");
             }
-
-            Nav.NavigateTo("/MyRecipes");
         }
-        else
-        {
-            errorMessage = "שגיאה בשמירת המתכון";
-        }
+        catch (Exception ex) { errorMessage = ex.Message; }
     }
 
-    void Cancel()
-    {
-        Nav.NavigateTo("/MyRecipes");
-    }
+    void Cancel() => Nav.NavigateTo("/MyRecipes");
 }
