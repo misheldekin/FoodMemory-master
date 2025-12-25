@@ -50,7 +50,10 @@
         <div class="ingredient-details">
             <div class="form-group">
                 <label>כמות:</label>
-                <input type="number" class="form-input" @bind="Amount" />
+                <InputNumber @bind-Value="Amount"
+                             class="form-input"
+                             step="0.01"
+                             min="0" />
             </div>
             <div class="form-group">
                 <label>גודל:</label>
@@ -117,8 +120,7 @@
     @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
 
     * {
-        box-sizing: border-box;
-        font-family: 'Rubik', sans-serif;
+        font-family: 'Rubik', 'Assistant', sans-serif;
     }
 
     .recipe-form-container {
@@ -133,6 +135,25 @@
         color: #414833;
         font-size: 2.5rem;
         margin-bottom: 30px;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+
+    .alert-danger {
+        background: #ffe6e6;
+        border: 2px solid #ff4444;
+        color: #cc0000;
+    }
+
+    .alert-success {
+        background: #e6ffe6;
+        border: 2px solid #44ff44;
+        color: #008800;
     }
 
     .form-card {
@@ -155,15 +176,15 @@
         font-size: 1.1rem;
     }
 
-    /* הפיכת כל התיבות לאחידות ב-100% */
     .form-input, .form-textarea, .form-select {
         width: 100%;
         padding: 12px 18px;
         border: 2px solid #A4AC86;
         border-radius: 12px;
         font-size: 1rem;
-        background: white;
         transition: all 0.3s ease;
+        background: white;
+        direction: rtl;
     }
 
         .form-input:focus, .form-textarea:focus, .form-select:focus {
@@ -172,47 +193,56 @@
             box-shadow: 0 0 0 4px rgba(115, 122, 93, 0.2);
         }
 
-    /* עיצוב התיבה המיוחדת של הרכיבים */
-    .ingredients-summary-card {
-        margin: 25px 0;
+    .form-textarea {
+        resize: vertical;
+    }
+
+    .file-input {
+        display: block;
         width: 100%;
-    }
-
-    .ingredients-inner-box {
-        background: white;
-        border: 2px solid #EBE3D2;
-        border-radius: 15px;
-        padding: 20px;
-        min-height: 80px;
-        box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
-    }
-
-    .ingredient-tag {
-        display: flex;
-        align-items: center;
         padding: 10px;
-        border-bottom: 1px solid #f0f0f0;
-        color: #414833;
+        background: white;
+        border: 2px dashed #A4AC86;
+        border-radius: 12px;
+        cursor: pointer;
     }
 
-        .ingredient-tag:last-child {
-            border-bottom: none;
+    .image-preview {
+        margin-top: 15px;
+        text-align: center;
+    }
+
+        .image-preview img {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-    .dot {
-        color: #A4AC86;
-        margin-left: 10px;
-        font-size: 0.8rem;
-    }
-
-    .no-ingredients-msg {
-        color: #999;
-        font-style: italic;
-        text-align: center;
+    .btn-add-new, .btn-save-ingredient, .btn-add-to-list {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
         margin: 10px 0;
     }
 
-    /* גריד לכמות וגודל */
+        .btn-add-new:hover, .btn-save-ingredient:hover, .btn-add-to-list:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.3);
+        }
+
+    .new-ingredient-section {
+        background: rgba(164, 172, 134, 0.1);
+        padding: 20px;
+        border-radius: 12px;
+        margin: 15px 0;
+    }
+
     .ingredient-details {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -220,28 +250,29 @@
         margin: 20px 0;
     }
 
-    /* כפתורים */
-    .btn-add-new {
-        background: none;
-        border: none;
-        color: #737A5D;
-        text-decoration: underline;
-        cursor: pointer;
-        padding: 0;
-        margin-bottom: 15px;
-        font-weight: 500;
+    .ingredients-list-section {
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
     }
 
-    .btn-add-to-list, .btn-save-ingredient {
-        width: 100%;
-        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
-        color: white;
-        border: none;
+        .ingredients-list-section h3 {
+            color: #414833;
+            margin-bottom: 15px;
+        }
+
+    .no-ingredients {
+        color: #737A5D;
+        font-style: italic;
+    }
+
+    .ingredient-item {
+        background: white;
         padding: 12px;
-        border-radius: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border: 1px solid #EBE3D2;
     }
 
     .action-buttons {
@@ -258,17 +289,33 @@
         font-size: 1.1rem;
         font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
     }
 
     .btn-save {
         background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
         color: white;
+        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
     }
+
+        .btn-save:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(65, 72, 51, 0.45);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
     .btn-back {
         background: #e0e0e0;
         color: #555;
     }
+
+        .btn-back:hover {
+            background: #d0d0d0;
+        }
 </style>
 
 @code {
@@ -278,7 +325,7 @@
     string Instructions = "";
     string ImageBase64 = "";
     string SelectedIngredient = "";
-    double Amount = 0;
+    decimal Amount = 0;
     string Size = "";
     List<RecipeIngredientModel> RecipeIngredients = new List<RecipeIngredientModel>();
     bool AddingNew = false;
@@ -341,13 +388,15 @@
                 return;
             }
 
-            System.IO.Stream stream = file.OpenReadStream(maxFileSize);
-            byte[] buffer = new byte[file.Size];
-            await stream.ReadAsync(buffer, 0, (int)file.Size);
-            
+            using System.IO.Stream stream = file.OpenReadStream(maxFileSize);
+            using System.IO.MemoryStream ms = new System.IO.MemoryStream();
+            await stream.CopyToAsync(ms);
+            byte[] buffer = ms.ToArray();
+
             string base64 = Convert.ToBase64String(buffer);
             ImageBase64 = $"data:{file.ContentType};base64,{base64}";
-            
+
+            ErrorMessage = "";
             SuccessMessage = "התמונה הועלתה בהצלחה!";
         }
         catch (Exception ex)
@@ -475,7 +524,7 @@
             for (int i = 0; i < RecipeIngredients.Count; i++)
             {
                 List<Ingredient> ingredientsList = await ingDB.SearchIngredientsByNameAsync(RecipeIngredients[i].Name);
-                
+
                 if (ingredientsList == null || ingredientsList.Count == 0)
                     continue;
 
@@ -516,7 +565,7 @@
     class RecipeIngredientModel
     {
         public string Name { get; set; }
-        public double Amount { get; set; }
+        public decimal Amount { get; set; }   
         public string Size { get; set; }
     }
 
@@ -524,4 +573,4 @@
     {
         Navigation.NavigateTo("/AfterLog");
     }
-}
+}   

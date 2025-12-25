@@ -52,7 +52,7 @@
                         int index = i;
                         <div class="ingredient-item">
                             <span class="ingredient-name">@GetIngredientName(recipeIngredients[index].IngredientID)</span>
-                            <input type="number" class="quantity-input" @bind="recipeIngredients[index].Quantity" step="0.1" />
+                            <input type="text" class="quantity-input" @bind="recipeIngredients[index].Quantity" step="0.1" />
                             <input type="text" class="size-input" @bind="recipeIngredients[index].Size" placeholder="יחידה" />
                             <button class="delete-btn" @onclick="() => RemoveFromList(index)">🗑️</button>
                         </div>
@@ -72,7 +72,7 @@
                                 }
                             }
                         </select>
-                        <input type="number" class="quantity-input" @bind="newQuantity" placeholder="כמות" step="0.1" />
+                        <input type="text" class="quantity-input" @bind="newQuantity" placeholder="כמות" step="0.1" />
                         <input type="text" class="size-input" @bind="newSize" placeholder="יחידה" />
                         <button class="add-btn" @onclick="AddExistingIngredient">הוסף</button>
                     </div>
@@ -82,7 +82,7 @@
                     <h4>✨ הוסף רכיב חדש למערכת</h4>
                     <div class="add-ingredient-form">
                         <input type="text" class="form-input" @bind="newIngredientName" placeholder="שם הרכיב החדש" />
-                        <input type="number" class="quantity-input" @bind="newQuantity" placeholder="כמות" step="0.1" />
+                        <input type="text" class="quantity-input" @bind="newQuantity" placeholder="כמות" step="0.1" />
                         <input type="text" class="size-input" @bind="newSize" placeholder="יחידה" />
                         <button class="add-btn" @onclick="AddNewIngredient">צור והוסף</button>
                     </div>
@@ -327,7 +327,7 @@
 
     int selectedIngredientId = 0;
     string newIngredientName = "";
-    double newQuantity = 0;
+    decimal newQuantity = 0;
     string newSize = "";
     string errorMessage = "";
 
