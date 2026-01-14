@@ -9,8 +9,11 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-bar">
-                <a href="/MyRecipes" style="direction: rtl;">המתכונים שלי</a>
-                <a href="#">שפים</a>
+                <a href="/AfterLog" class="nav-item">🏠 דף בית</a>
+                <a href="/MyRecipes" class="nav-item">🍲 המתכונים שלי</a>
+                <a href="#" class="nav-item">🍽️ הארוחות שלי</a>
+                <a href="#" class="nav-item">👨‍🍳 שפים</a>
+                <a href="#" class="nav-item">📦 ההזמנות שלי</a>
             </nav>
             <div class="user-profile" @onclick="GoToProfile" title="עדכון פרופיל">
                 <img src="@profileImage" alt="פרופיל" class="profile-icon">
@@ -106,38 +109,44 @@
         padding: 20px 40px;
         border-bottom: 1px solid #eee;
         text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
     .header-content {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
-        gap: 40px;
-        position: relative;
+        max-width: 1400px;
+        margin: 0 auto;
     }
 
     .nav-bar {
         display: flex;
-        gap: 30px;
+        gap: 15px;
+        flex-wrap: wrap;
+        flex: 1;
     }
 
-        .nav-bar a {
-            color: #333;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
+    .nav-item {
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        font-size: 0.95em;
+    }
+
+        .nav-item:hover {
+            color: #6a994e;
+            background-color: #f0f4ed;
         }
 
-            .nav-bar a:hover {
-                color: #457b9d;
-            }
-
     .user-profile {
-        position: absolute;
-        right: 0;
-        top: 0;
         cursor: pointer;
         transition: transform 0.2s;
+        margin-right: 20px;
     }
 
         .user-profile:hover {
@@ -258,6 +267,7 @@
             background-color: #543618;
             transform: translateY(-2px);
         }
+
     @@media (min-width: 768px) {
         .search-container
 
@@ -279,7 +289,7 @@
     }
 
     .story-card {
-        flex: 0 0 180px; /* קבוע – לא נשבר שורה */
+        flex: 0 0 180px;
         max-width: 180px;
         text-align: center;
         padding: 0;
@@ -341,6 +351,39 @@
             color: #777;
         }
 
+    @@media (max-width: 1024px) {
+        .nav-item
+
+    {
+        font-size: 0.85em;
+        padding: 6px 10px;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .header-content
+
+    {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .nav-bar {
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .nav-item {
+        font-size: 0.8em;
+        padding: 6px 8px;
+    }
+
+    .user-profile {
+        margin-right: 0;
+    }
+
+    }
 </style>
 
 @code {
