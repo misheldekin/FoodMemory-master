@@ -325,7 +325,7 @@
     string Instructions = "";
     string ImageBase64 = "";
     string SelectedIngredient = "";
-    decimal Amount = 0;
+    double Amount = 0;
     string Size = "";
     List<RecipeIngredientModel> RecipeIngredients = new List<RecipeIngredientModel>();
     bool AddingNew = false;
@@ -565,7 +565,7 @@
     class RecipeIngredientModel
     {
         public string Name { get; set; }
-        public decimal Amount { get; set; }   
+        public double Amount { get; set; }   
         public string Size { get; set; }
     }
 

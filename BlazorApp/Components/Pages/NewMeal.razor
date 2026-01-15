@@ -1,0 +1,633 @@
+﻿@page "/CreateMeal"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
+
+<div class="meal-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">← חזרה</button>
+
+    <h2>🍽️ יצירת ארוחה חדשה</h2>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-alert">@errorMessage</div>
+    }
+
+    @if (showSuccessToast)
+    {
+        <div class="toast-notification">
+            <span class="toast-icon">✓</span>
+            <span class="toast-message">הארוחה נשמרה בהצלחה!</span>
+        </div>
+    }
+
+    @if (allRecipes == null)
+    {
+        <p class="loading">טוען מתכונים...</p>
+    }
+    else
+    {
+        <div class="form-card">
+            <!-- שם הארוחה -->
+            <div class="form-group">
+                <label>שם הארוחה</label>
+                <input type="text" class="form-input" @bind="mealName" placeholder="לדוגמה: ארוחת בוקר, ארוחת שישי..." />
+            </div>
+
+            <!-- בחירת מתכונים -->
+            <div class="recipes-section">
+                <h3>🥘 בחר מתכונים לארוחה</h3>
+
+                <div class="search-box">
+                    <input type="text" class="search-input" @bind="searchTerm" @bind:event="oninput" placeholder="🔍 חפש מתכון..." />
+                </div>
+
+                <div class="recipes-grid">
+                    @for (int i = 0; i < GetFilteredRecipes().Count; i++)
+                    {
+                        int index = i;
+                        Recipes recipe = GetFilteredRecipes()[index];
+                        bool isSelected = IsRecipeSelected(recipe.RecipeID);
+
+                        <div class="recipe-card @(isSelected ? "selected" : "")" @onclick="@(() => ToggleRecipe(recipe.RecipeID))">
+                            <div class="recipe-image">
+                                <img src="@(string.IsNullOrEmpty(recipe.ImageURL) ? "/images/defultpic.jpg" : recipe.ImageURL)" alt="@recipe.Name" />
+                                @if (isSelected)
+                                {
+                                    <div class="selected-badge">✓</div>
+                                }
+                            </div>
+                            <div class="recipe-info">
+                                <h4>@recipe.Name</h4>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (GetFilteredRecipes().Count == 0)
+                {
+                    <p class="no-results">לא נמצאו מתכונים 🔍</p>
+                }
+            </div>
+
+            <!-- מתכונים שנבחרו -->
+            @if (selectedRecipeIds.Count > 0)
+            {
+                <div class="selected-recipes-section">
+                    <h3>✅ מתכונים שנבחרו (@selectedRecipeIds.Count)</h3>
+                    <div class="selected-list">
+                        @for (int i = 0; i < selectedRecipeIds.Count; i++)
+                        {
+                            int recipeId = selectedRecipeIds[i];
+                            string recipeName = GetRecipeName(recipeId);
+                            int index = i;
+
+                            <div class="selected-item">
+                                <span>@recipeName</span>
+                                <button class="remove-btn" @onclick="@(() => RemoveRecipe(recipeId))">❌</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- כפתורי שמירה -->
+            <div class="action-buttons">
+                <button class="btn-cancel" @onclick="GoBack">ביטול</button>
+                @if (isSaving)
+                {
+                    <button class="btn-save" disabled>שומר...</button>
+                }
+                else
+                {
+                    <button class="btn-save" @onclick="SaveMeal">💾 שמור ארוחה</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Rubik', 'Assistant', sans-serif;
+        box-sizing: border-box;
+    }
+
+    .meal-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 20px;
+        direction: rtl;
+        position: relative;
+    }
+
+    .back-btn {
+        position: absolute;
+        top: 0;
+        right: 20px;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        transition: all 0.3s ease;
+        z-index: 100;
+    }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+        }
+
+    h2 {
+        text-align: center;
+        color: #414833;
+        font-size: 2.5rem;
+        margin: 50px 0 30px 0;
+    }
+
+    .loading {
+        text-align: center;
+        color: #737A5D;
+        font-size: 1.2rem;
+    }
+
+    .error-alert {
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        text-align: center;
+        background: #ffe6e6;
+        border: 2px solid #ff4444;
+        color: #cc0000;
+    }
+
+    .toast-notification {
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        box-shadow: 0 10px 30px rgba(65, 72, 51, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 1000;
+        animation: slideDown 0.4s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .toast-icon {
+        background: white;
+        color: #737A5D;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    @@keyframes slideDown {
+        from {
+            transform: translateX(-50%) translateY(-100px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+        }
+    }
+
+    .form-card {
+        background: rgba(235, 227, 210, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 15px 40px rgba(65, 72, 51, 0.15);
+        border: 2px solid rgba(164, 172, 134, 0.3);
+    }
+
+    .form-group {
+        margin-bottom: 30px;
+    }
+
+    label {
+        display: block;
+        color: #414833;
+        font-weight: 600;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 15px 20px;
+        border: 2px solid #A4AC86;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #737A5D;
+            box-shadow: 0 0 0 4px rgba(115, 122, 93, 0.2);
+        }
+
+    .recipes-section {
+        margin: 30px 0;
+    }
+
+        .recipes-section h3 {
+            color: #414833;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+    .search-box {
+        margin-bottom: 20px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 20px;
+        border: 2px solid #A4AC86;
+        border-radius: 12px;
+        font-size: 1rem;
+        background: white;
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #737A5D;
+            box-shadow: 0 0 0 3px rgba(115, 122, 93, 0.2);
+        }
+
+    .recipes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .recipe-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 3px solid transparent;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .recipe-card.selected {
+            border-color: #737A5D;
+            box-shadow: 0 8px 20px rgba(115, 122, 93, 0.3);
+        }
+
+    .recipe-image {
+        position: relative;
+        width: 100%;
+        height: 150px;
+    }
+
+        .recipe-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .selected-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #737A5D;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+
+    .recipe-info {
+        padding: 15px;
+    }
+
+        .recipe-info h4 {
+            margin: 0;
+            color: #414833;
+            font-size: 1rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    .no-results {
+        text-align: center;
+        color: #999;
+        font-size: 1.1rem;
+        padding: 40px;
+    }
+
+    .selected-recipes-section {
+        margin: 30px 0;
+        padding: 25px;
+        background: rgba(115, 122, 93, 0.1);
+        border-radius: 15px;
+    }
+
+        .selected-recipes-section h3 {
+            color: #414833;
+            margin-bottom: 15px;
+        }
+
+    .selected-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .selected-item {
+        background: white;
+        padding: 12px 15px;
+        border-radius: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #EBE3D2;
+    }
+
+        .selected-item span {
+            color: #414833;
+            font-weight: 500;
+        }
+
+    .remove-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 5px;
+        transition: transform 0.2s;
+    }
+
+        .remove-btn:hover {
+            transform: scale(1.2);
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        justify-content: center;
+    }
+
+    .btn-save, .btn-cancel {
+        padding: 15px 40px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
+    }
+
+        .btn-save:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(65, 72, 51, 0.45);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    .btn-cancel {
+        background: #e0e0e0;
+        color: #555;
+    }
+
+        .btn-cancel:hover {
+            background: #d0d0d0;
+        }
+
+    @@media (max-width: 768px) {
+        .back-btn {
+            position: static;
+            display: block;
+            margin: 0 auto 20px;
+            width: fit-content;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+
+        .recipes-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+    }
+</style>
+
+@code {
+    List<Recipes> allRecipes;
+    List<int> selectedRecipeIds = new List<int>();
+    string mealName = "";
+    string searchTerm = "";
+    string errorMessage = "";
+    bool showSuccessToast = false;
+    bool isSaving = false;
+    int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ProtectedBrowserStorageResult<int> userIdResult = await Session.GetAsync<int>("customerid");
+        if (!userIdResult.Success)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        currentUserId = userIdResult.Value;
+
+        RecipeDB recipeDB = new RecipeDB();
+        allRecipes = await recipeDB.GetAllAsync();
+    }
+
+    List<Recipes> GetFilteredRecipes()
+    {
+        if (allRecipes == null)
+            return new List<Recipes>();
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return allRecipes;
+
+        List<Recipes> filtered = new List<Recipes>();
+        for (int i = 0; i < allRecipes.Count; i++)
+        {
+            if (allRecipes[i].Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            {
+                filtered.Add(allRecipes[i]);
+            }
+        }
+        return filtered;
+    }
+
+    bool IsRecipeSelected(int recipeId)
+    {
+        for (int i = 0; i < selectedRecipeIds.Count; i++)
+        {
+            if (selectedRecipeIds[i] == recipeId)
+                return true;
+        }
+        return false;
+    }
+
+    void ToggleRecipe(int recipeId)
+    {
+        if (IsRecipeSelected(recipeId))
+        {
+            RemoveRecipe(recipeId);
+        }
+        else
+        {
+            selectedRecipeIds.Add(recipeId);
+        }
+    }
+
+    void RemoveRecipe(int recipeId)
+    {
+        for (int i = 0; i < selectedRecipeIds.Count; i++)
+        {
+            if (selectedRecipeIds[i] == recipeId)
+            {
+                selectedRecipeIds.RemoveAt(i);
+                break;
+            }
+        }
+    }
+
+    string GetRecipeName(int recipeId)
+    {
+        for (int i = 0; i < allRecipes.Count; i++)
+        {
+            if (allRecipes[i].RecipeID == recipeId)
+                return allRecipes[i].Name;
+        }
+        return "לא ידוע";
+    }
+
+    async Task SaveMeal()
+    {
+        errorMessage = "";
+        showSuccessToast = false;
+
+        if (string.IsNullOrWhiteSpace(mealName))
+        {
+            errorMessage = "נא להזין שם לארוחה";
+            return;
+        }
+
+        if (selectedRecipeIds.Count == 0)
+        {
+            errorMessage = "נא לבחור לפחות מתכון אחד";
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            MealsDB mealsDB = new MealsDB();
+            Meals newMeal = new Meals();
+            newMeal.userID = currentUserId;
+            newMeal.name = mealName.Trim();
+
+            Meals insertedMeal = await mealsDB.InsertGetObjAsync(newMeal);
+
+            if (insertedMeal == null || insertedMeal.mealID <= 0)
+            {
+                errorMessage = "שגיאה בשמירת הארוחה";
+                return;
+            }
+
+            MealRecipeDB mealRecipeDB = new MealRecipeDB();
+
+            for (int i = 0; i < selectedRecipeIds.Count; i++)
+            {
+                MealRecipe mr = new MealRecipe();
+                mr.MealID = insertedMeal.mealID;
+                mr.RecipeID = selectedRecipeIds[i];
+
+                int result = await mealRecipeDB.InsertAsync(mr);
+            }
+
+            showSuccessToast = true;
+            StateHasChanged();
+
+            await Task.Delay(3000);
+            showSuccessToast = false;
+
+            mealName = "";
+            selectedRecipeIds.Clear();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"שגיאה: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/AfterLog");
+    }
+}

@@ -11,13 +11,21 @@
             <nav class="nav-bar">
                 <a href="/AfterLog" class="nav-item">🏠 דף בית</a>
                 <a href="/MyRecipes" class="nav-item">🍲 המתכונים שלי</a>
-                <a href="#" class="nav-item">🍽️ הארוחות שלי</a>
+                <a href="/CreateMeal" class="nav-item">🍽️ הארוחות שלי</a>
                 <a href="#" class="nav-item">👨‍🍳 שפים</a>
                 <a href="#" class="nav-item">📦 ההזמנות שלי</a>
             </nav>
             <div class="user-profile" @onclick="GoToProfile" title="עדכון פרופיל">
                 <img src="@profileImage" alt="פרופיל" class="profile-icon">
             </div>
+
+            <div class="logout-container">
+                <button class="btn btn-danger" @onclick="Logout">
+                    התנתקות
+                </button>
+            </div>
+
+
         </div>
     </header>
 
@@ -353,6 +361,51 @@
             color: #777;
         }
 
+    .logout-container {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+        .logout-container button {
+            background: linear-gradient(135deg, #ff4d4d, #e60000);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .logout-container button::before {
+                content: "⎋";
+                font-size: 16px;
+            }
+
+            .logout-container button:hover {
+                background: linear-gradient(135deg, #ff1a1a, #cc0000);
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+            }
+
+    @@media (max-width: 768px) {
+        .logout-container
+
+    {
+        position: static;
+        transform: none;
+        margin-top: 10px;
+    }
+
+    }
+
     @@media (max-width: 1024px) {
         .nav-item
 
@@ -431,5 +484,10 @@
     private void GoToProfile()
     {
         navigationManager.NavigateTo("/UpdateProfile");
+    }
+
+    private void Logout()
+    {
+        navigationManager.NavigateTo("/Login");
     }
 }

@@ -17,16 +17,16 @@ namespace DBL
 
         protected override string GetPrimaryKeyName()
         {
-            return "recipe_ingredientsID";
+            return "";
         }
 
         protected override async Task<RecipeIngredient> CreateModelAsync(object[] row)
         {
             RecipeIngredient ri = new RecipeIngredient();
-            ri.RecipeID = int.Parse(row[1].ToString());
-            ri.IngredientID = int.Parse(row[2].ToString());
-            ri.Quantity = decimal.Parse(row[3].ToString());
-            ri.Size = row[4].ToString();
+            ri.RecipeID = int.Parse(row[0].ToString());
+            ri.IngredientID = int.Parse(row[1].ToString());
+            ri.Quantity = double.Parse(row[2].ToString());
+            ri.Size = row[3].ToString();
             return ri;
         }
 
@@ -51,6 +51,7 @@ namespace DBL
             };
             return (List<RecipeIngredient>)await SelectAllAsync(filter);
         }
+
         public async Task<int> DeleteByRecipeAsync(int recipeId)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>()

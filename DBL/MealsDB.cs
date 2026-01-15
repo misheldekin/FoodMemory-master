@@ -46,7 +46,7 @@ namespace DBL
             Dictionary<string, object> filterValues = new Dictionary<string, object>();
             Dictionary<string, object> fillValues = new Dictionary<string, object>()
     {
-        { "user_id", meal.userID },  // שם העמודה בטבלה
+        { "user_id", meal.userID }, 
         { "name", meal.name }
     };
             return await base.UpdateAsync(fillValues, filterValues);
