@@ -3,9 +3,8 @@
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using Microsoft.AspNetCore.Components.Forms
-@inject NavigationManager Navigation
+@inject NavigationManager navigationManager
 @inject ProtectedSessionStorage Session
-@inject IJSRuntime JSRuntime
 
 <div class="recipe-form-container" dir="rtl">
     <h2>🍳 הוספת מתכון חדש</h2>
@@ -50,10 +49,7 @@
         <div class="ingredient-details">
             <div class="form-group">
                 <label>כמות:</label>
-                <InputNumber @bind-Value="Amount"
-                             class="form-input"
-                             step="0.01"
-                             min="0" />
+                <InputNumber @bind-Value="Amount" class="form-input" step="0.01" min="0" />
             </div>
             <div class="form-group">
                 <label>גודל:</label>
@@ -117,8 +113,8 @@
 </div>
 
 <style>
-    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
-
+    /* הסטייל המקורי שלך */
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
     * {
         font-family: 'Rubik', 'Assistant', sans-serif;
     }
@@ -182,89 +178,28 @@
         border: 2px solid #A4AC86;
         border-radius: 12px;
         font-size: 1rem;
-        transition: all 0.3s ease;
         background: white;
         direction: rtl;
     }
 
-        .form-input:focus, .form-textarea:focus, .form-select:focus {
-            outline: none;
-            border-color: #737A5D;
-            box-shadow: 0 0 0 4px rgba(115, 122, 93, 0.2);
-        }
-
-    .form-textarea {
-        resize: vertical;
-    }
-
-    .file-input {
-        display: block;
-        width: 100%;
-        padding: 10px;
-        background: white;
-        border: 2px dashed #A4AC86;
-        border-radius: 12px;
-        cursor: pointer;
-    }
-
-    .image-preview {
-        margin-top: 15px;
-        text-align: center;
-    }
-
-        .image-preview img {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-    .btn-add-new, .btn-save-ingredient, .btn-add-to-list {
+    .btn-save {
         background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
         color: white;
+        padding: 15px 40px;
         border: none;
-        border-radius: 10px;
-        padding: 10px 20px;
+        border-radius: 12px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s ease;
-        margin: 10px 0;
     }
 
-        .btn-add-new:hover, .btn-save-ingredient:hover, .btn-add-to-list:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.3);
-        }
-
-    .new-ingredient-section {
-        background: rgba(164, 172, 134, 0.1);
-        padding: 20px;
+    .btn-back {
+        background: #e0e0e0;
+        color: #555;
+        padding: 15px 40px;
+        border: none;
         border-radius: 12px;
-        margin: 15px 0;
-    }
-
-    .ingredient-details {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin: 20px 0;
-    }
-
-    .ingredients-list-section {
-        margin: 25px 0;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.7);
-        border-radius: 12px;
-    }
-
-        .ingredients-list-section h3 {
-            color: #414833;
-            margin-bottom: 15px;
-        }
-
-    .no-ingredients {
-        color: #737A5D;
-        font-style: italic;
+        font-weight: 600;
+        cursor: pointer;
     }
 
     .ingredient-item {
@@ -281,41 +216,6 @@
         margin-top: 30px;
         justify-content: center;
     }
-
-    .btn-save, .btn-back {
-        padding: 15px 40px;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .btn-save {
-        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
-        color: white;
-        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
-    }
-
-        .btn-save:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(65, 72, 51, 0.45);
-        }
-
-        .btn-save:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-    .btn-back {
-        background: #e0e0e0;
-        color: #555;
-    }
-
-        .btn-back:hover {
-            background: #d0d0d0;
-        }
 </style>
 
 @code {
@@ -335,43 +235,39 @@
     string ErrorMessage = "";
     string SuccessMessage = "";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        try
+        if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("console.log", "=== OnInitializedAsync Started ===");
-            ProtectedBrowserStorageResult<int> resultID = await Session.GetAsync<int>("customerid");
-            await JSRuntime.InvokeVoidAsync("console.log", $"Session result - Success: {resultID.Success}, Value: {resultID.Value}");
-
-            if (!resultID.Success || resultID.Value <= 0)
+            try
             {
-                await JSRuntime.InvokeVoidAsync("console.log", "No valid user ID, redirecting to login");
-                Navigation.NavigateTo("/Login");
-                return;
-            }
+                ProtectedBrowserStorageResult<int> resultID = await Session.GetAsync<int>("customerid");
 
-            CurrentUserID = resultID.Value;
-            await JSRuntime.InvokeVoidAsync("console.log", $"Current User ID set to: {CurrentUserID}");
-
-            IngredientDB db = new IngredientDB();
-            await JSRuntime.InvokeVoidAsync("console.log", "Fetching ingredients from DB...");
-            List<Ingredient> list = await db.GetAllAsync();
-            await JSRuntime.InvokeVoidAsync("console.log", $"Ingredients fetched: {list?.Count ?? 0}");
-
-            if (list != null)
-            {
-                for (int i = 0; i < list.Count; i++)
+                if (!resultID.Success || resultID.Value <= 0)
                 {
-                    Ingredients.Add(list[i].IngredientName);
+                    navigationManager.NavigateTo("/Login");
+                    return;
                 }
-                await JSRuntime.InvokeVoidAsync("console.log", $"Ingredients list populated with {Ingredients.Count} items");
+
+                CurrentUserID = resultID.Value;
+
+                IngredientDB db = new IngredientDB();
+                List<Ingredient> list = await db.GetAllAsync();
+
+                if (list != null)
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        Ingredients.Add(list[i].IngredientName);
+                    }
+                    StateHasChanged();
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error in OnInitializedAsync: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("console.error", ex.StackTrace);
-            ErrorMessage = $"שגיאה בטעינת הדף: {ex.Message}";
+            catch (Exception ex)
+            {
+                ErrorMessage = $"שגיאה בטעינת הנתונים: {ex.Message}";
+                StateHasChanged();
+            }
         }
     }
 
@@ -380,7 +276,7 @@
         try
         {
             IBrowserFile file = e.File;
-            long maxFileSize = 5 * 1024 * 1024; // 5MB
+            long maxFileSize = 5 * 1024 * 1024;
 
             if (file.Size > maxFileSize)
             {
@@ -388,8 +284,8 @@
                 return;
             }
 
-            using System.IO.Stream stream = file.OpenReadStream(maxFileSize);
-            using System.IO.MemoryStream ms = new System.IO.MemoryStream();
+            System.IO.Stream stream = file.OpenReadStream(maxFileSize);
+            System.IO.MemoryStream ms = new System.IO.MemoryStream();
             await stream.CopyToAsync(ms);
             byte[] buffer = ms.ToArray();
 
@@ -423,47 +319,30 @@
 
         try
         {
-            await JSRuntime.InvokeVoidAsync("console.log", $"Saving new ingredient: {NewIngredientName}");
             IngredientDB db = new IngredientDB();
             Ingredient item = new Ingredient();
             item.IngredientName = NewIngredientName.Trim();
-            Ingredient result = await db.InsertGetObjAsync(item);
-            await JSRuntime.InvokeVoidAsync("console.log", $"Ingredient saved with ID: {result?.IngredientID}");
 
-            Ingredients.Add(NewIngredientName.Trim());
-            SelectedIngredient = NewIngredientName.Trim();
+            Ingredient result = await db.InsertGetObjAsync(item);
+
+            Ingredients.Add(item.IngredientName);
+            SelectedIngredient = item.IngredientName;
             NewIngredientName = "";
             AddingNew = false;
             SuccessMessage = "רכיב נוסף בהצלחה!";
-            StateHasChanged();
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error saving ingredient: {ex.Message}");
             ErrorMessage = $"שגיאה בשמירת הרכיב: {ex.Message}";
         }
     }
 
-    async Task AddToList()
+    void AddToList()
     {
         ErrorMessage = "";
-        await JSRuntime.InvokeVoidAsync("console.log", $"AddToList - Ingredient: {SelectedIngredient}, Amount: {Amount}, Size: {Size}");
-
-        if (string.IsNullOrWhiteSpace(SelectedIngredient))
+        if (string.IsNullOrWhiteSpace(SelectedIngredient) || Amount <= 0 || string.IsNullOrWhiteSpace(Size))
         {
-            ErrorMessage = "נא לבחור רכיב";
-            return;
-        }
-
-        if (Amount <= 0)
-        {
-            ErrorMessage = "נא להזין כמות תקינה";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(Size))
-        {
-            ErrorMessage = "נא להזין גודל";
+            ErrorMessage = "נא למלא את כל פרטי הרכיב (שם, כמות ומידה)";
             return;
         }
 
@@ -471,9 +350,8 @@
         model.Name = SelectedIngredient;
         model.Amount = Amount;
         model.Size = Size;
-        RecipeIngredients.Add(model);
 
-        await JSRuntime.InvokeVoidAsync("console.log", $"Ingredient added to list. Total ingredients: {RecipeIngredients.Count}");
+        RecipeIngredients.Add(model);
 
         SelectedIngredient = "";
         Amount = 0;
@@ -492,12 +370,14 @@
             if (string.IsNullOrWhiteSpace(RecipeName))
             {
                 ErrorMessage = "נא להזין שם מתכון";
+                IsSaving = false;
                 return;
             }
 
             if (RecipeIngredients.Count == 0)
             {
                 ErrorMessage = "נא להוסיף לפחות רכיב אחד";
+                IsSaving = false;
                 return;
             }
 
@@ -511,50 +391,33 @@
 
             Recipes insertedRecipe = await db.InsertGetObjAsync(newRecipe);
 
-            if (insertedRecipe == null || insertedRecipe.RecipeID <= 0)
+            if (insertedRecipe != null && insertedRecipe.RecipeID > 0)
             {
-                ErrorMessage = "שגיאה בשמירת המתכון";
-                return;
+                RecipeIngredientDB riDb = new RecipeIngredientDB();
+                IngredientDB ingDB = new IngredientDB();
+
+                for (int i = 0; i < RecipeIngredients.Count; i++)
+                {
+                    List<Ingredient> found = await ingDB.SearchIngredientsByNameAsync(RecipeIngredients[i].Name);
+                    if (found != null && found.Count > 0)
+                    {
+                        RecipeIngredient ri = new RecipeIngredient();
+                        ri.RecipeID = insertedRecipe.RecipeID;
+                        ri.IngredientID = found[0].IngredientID;
+                        ri.Quantity = RecipeIngredients[i].Amount;
+                        ri.Size = RecipeIngredients[i].Size;
+
+                        await riDb.InsertAsync(ri);
+                    }
+                }
+
+                SuccessMessage = "המתכון נשמר בהצלחה!";
+                ResetForm();
             }
-
-            RecipeIngredientDB ingredientDb = new RecipeIngredientDB();
-            IngredientDB ingDB = new IngredientDB();
-            int savedIngredients = 0;
-
-            for (int i = 0; i < RecipeIngredients.Count; i++)
-            {
-                List<Ingredient> ingredientsList = await ingDB.SearchIngredientsByNameAsync(RecipeIngredients[i].Name);
-
-                if (ingredientsList == null || ingredientsList.Count == 0)
-                    continue;
-
-                Ingredient ing = ingredientsList[0];
-
-                RecipeIngredient ri = new RecipeIngredient();
-                ri.RecipeID = insertedRecipe.RecipeID;
-                ri.IngredientID = ing.IngredientID;
-                ri.Quantity = RecipeIngredients[i].Amount;
-                ri.Size = RecipeIngredients[i].Size;
-
-                int insertResult = await ingredientDb.InsertAsync(ri);
-                savedIngredients++;
-            }
-
-            RecipeName = "";
-            Story = "";
-            Instructions = "";
-            ImageBase64 = "";
-            RecipeIngredients.Clear();
-            SelectedIngredient = "";
-            Amount = 0;
-            Size = "";
-
-            SuccessMessage = $"המתכון נשמר בהצלחה! מזהה: {insertedRecipe.RecipeID}, רכיבים: {savedIngredients}";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"שגיאה: {ex.Message}";
-            await JSRuntime.InvokeVoidAsync("console.error", ex.Message);
+            ErrorMessage = $"שגיאה בשמירת המתכון: {ex.Message}";
         }
         finally
         {
@@ -562,15 +425,21 @@
         }
     }
 
-    class RecipeIngredientModel
+    void ResetForm()
     {
-        public string Name { get; set; }
-        public double Amount { get; set; }   
-        public string Size { get; set; }
+        RecipeName = ""; Story = ""; Instructions = ""; ImageBase64 = "";
+        RecipeIngredients.Clear(); SelectedIngredient = ""; Amount = 0; Size = "";
     }
 
     void GoBack()
     {
-        Navigation.NavigateTo("/AfterLog");
+        navigationManager.NavigateTo("/AfterLog");
     }
-}   
+
+    class RecipeIngredientModel
+    {
+        public string Name { get; set; }
+        public double Amount { get; set; }
+        public string Size { get; set; }
+    }
+}

@@ -1,0 +1,74 @@
+﻿@page "/MyMeals"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
+
+<button class="btn btn-link mb-3" @onclick="GoBack">
+    ← חזרה
+</button>
+
+<h1 class="mb-4">הארוחות שלי</h1>
+
+@if (Meals == null)
+{
+    <p>טוען ארוחות...</p>
+}
+else if (Meals.Count == 0)
+{
+    <div class="alert alert-info">
+        עדיין לא הוספת ארוחות 🍽️
+    </div>
+}
+else
+{
+    <div class="row">
+        @for (int i = 0; i < Meals.Count; i++)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@Meals[i].name</h5>
+
+                        <button class="btn btn-outline-primary btn-sm"
+                                @onclick="() => OpenMeal(Meals[i].mealID)">
+                            צפייה בארוחה
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+
+
+
+
+@code {
+    List<Meals> Meals;
+    protected override async Task OnInitializedAsync()
+    {
+        ProtectedBrowserStorageResult<int> userIdResult = await Session.GetAsync<int>("customerid");
+        if (!userIdResult.Success)
+        {
+            Nav.NavigateTo("/AfterLog");
+            return;
+        }
+        int userId = userIdResult.Value;
+        MealsDB mealDB = new MealsDB();
+        Meals = await mealDB.GetMealsByUserAsync(userId);
+    }
+
+    private void OpenMeal(int mealId)
+    {
+        Nav.NavigateTo("/MealDetails/" + mealId);
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/AfterLog");
+    }
+}

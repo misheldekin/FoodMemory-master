@@ -64,7 +64,7 @@ namespace DBL
                 return null;
         }
 
-        public async Task<List<Meals>> GetRecipesByUserAsync(int userId)
+        public async Task<List<Meals>> GetMealsByUserAsync(int userId)
         {
             Dictionary<string, object> p = new Dictionary<string, object>();
             p.Add("user_id", userId);
