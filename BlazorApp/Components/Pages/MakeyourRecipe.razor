@@ -3,82 +3,114 @@
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using Microsoft.AspNetCore.Components.Forms
-@inject NavigationManager navigationManager
+@inject NavigationManager Navigation
 @inject ProtectedSessionStorage Session
 
 <div class="recipe-form-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">← חזרה</button>
+
     <h2>🍳 הוספת מתכון חדש</h2>
 
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {
         <div class="alert alert-danger">@ErrorMessage</div>
     }
-    @if (!string.IsNullOrEmpty(SuccessMessage))
+
+    @if (showSuccessToast)
     {
-        <div class="alert alert-success">@SuccessMessage</div>
+        <div class="toast-notification">
+            <span class="toast-icon">✓</span>
+            <span class="toast-message">המתכון נשמר בהצלחה!</span>
+        </div>
     }
 
     <div class="form-card">
+        <!-- שם המתכון -->
         <div class="form-group">
-            <label>שם המתכון:</label>
+            <label>שם המתכון</label>
             <input type="text" class="form-input" @bind="RecipeName" placeholder="שם המתכון" />
         </div>
 
-        <div class="form-group">
-            <label>בחר רכיב:</label>
-            <select class="form-select" @bind="SelectedIngredient">
-                <option value="">-- בחר --</option>
-                @for (int i = 0; i < Ingredients.Count; i++)
-                {
-                    <option value="@Ingredients[i]">@Ingredients[i]</option>
-                }
-            </select>
+        <!-- בחירת רכיב -->
+        <div class="ingredients-selection">
+            <h3>🥗 הוספת רכיבים</h3>
+
+            <div class="form-group">
+                <label>חיפוש רכיב</label>
+                <input type="text" class="form-input search-input" @bind="searchTerm" @bind:event="oninput" placeholder="🔍 חפש רכיב..." />
+            </div>
+
+            <div class="form-group">
+                <label>בחר רכיב</label>
+                <select class="form-select" @bind="SelectedIngredient">
+                    <option value="">-- בחר רכיב --</option>
+                    @for (int i = 0; i < GetFilteredIngredients().Count; i++)
+                    {
+                        <option value="@GetFilteredIngredients()[i]">@GetFilteredIngredients()[i]</option>
+                    }
+                </select>
+            </div>
+
+            <button class="btn-add-new-ingredient" @onclick="ShowAddIngredient">➕ הוסף רכיב חדש למערכת</button>
+
+            @if (AddingNew)
+            {
+                <div class="new-ingredient-box">
+                    <label>שם רכיב חדש</label>
+                    <input type="text" class="form-input" @bind="NewIngredientName" placeholder="שם הרכיב החדש" />
+                    <div class="new-ingredient-buttons">
+                        <button class="btn-save-new" @onclick="SaveNewIngredient">💾 שמור</button>
+                        <button class="btn-cancel-new" @onclick="CancelAddNew">❌ ביטול</button>
+                    </div>
+                </div>
+            }
+
+            <div class="amount-size-grid">
+                <div class="form-group">
+                    <label>כמות</label>
+                    <input type="text" class="form-input" @bind="AmountInput" placeholder="לדוגמה: 0.5, 1, 2.5" />
+                </div>
+                <div class="form-group">
+                    <label>יחידה</label>
+                    <input type="text" class="form-input" @bind="Size" placeholder="גרם, כפית, כוס..." />
+                </div>
+            </div>
+
+            <button class="btn-add-to-list" @onclick="AddToList">
+                ➕ הוסף לרשימת המרכיבים
+            </button>
         </div>
 
-        <button class="btn-add-new" @onclick="ShowAddIngredient">הוסף רכיב חדש</button>
-
-        @if (AddingNew)
-        {
-            <div class="new-ingredient-section">
-                <label>שם רכיב חדש:</label>
-                <input type="text" class="form-input" @bind="NewIngredientName" placeholder="שם הרכיב" />
-                <button class="btn-save-ingredient" @onclick="SaveNewIngredient">הוסף רכיב</button>
-            </div>
-        }
-
-        <div class="ingredient-details">
-            <div class="form-group">
-                <label>כמות:</label>
-                <InputNumber @bind-Value="Amount" class="form-input" step="0.01" min="0" />
-            </div>
-            <div class="form-group">
-                <label>גודל:</label>
-                <input type="text" class="form-input" @bind="Size" placeholder="גרם, כפית, כוס..." />
-            </div>
-            <button class="btn-add-to-list" @onclick="AddToList">הוסף לרשימת המרכיבים</button>
-        </div>
-
+        <!-- רשימת רכיבים -->
         <div class="ingredients-list-section">
-            <h3>רשימת רכיבים:</h3>
+            <h3>📋 רכיבים שנוספו (@RecipeIngredients.Count)</h3>
             @if (RecipeIngredients.Count == 0)
             {
-                <p class="no-ingredients">עדיין לא נוספו רכיבים</p>
+                <p class="no-ingredients">עדיין לא הוספת רכיבים למתכון 🍽️</p>
             }
             else
             {
                 <div class="ingredients-list">
                     @for (int i = 0; i < RecipeIngredients.Count; i++)
                     {
+                        int index = i;
                         <div class="ingredient-item">
-                            <span>@RecipeIngredients[i].Name - @RecipeIngredients[i].Amount @RecipeIngredients[i].Size</span>
+                            <div class="ingredient-content">
+                                <span class="ingredient-number">@(index + 1)</span>
+                                <span class="ingredient-text">@RecipeIngredients[index].Name - @RecipeIngredients[index].Amount @RecipeIngredients[index].Size</span>
+                            </div>
+                            <button class="delete-btn" @onclick="@(() => RemoveIngredient(index))">
+                                🗑️ הסר
+                            </button>
                         </div>
                     }
                 </div>
             }
         </div>
 
+        <!-- תמונה -->
         <div class="form-group">
-            <label>תמונה:</label>
+            <label>תמונת המתכון</label>
             <InputFile OnChange="HandleImageUpload" accept="image/*" class="file-input" />
             @if (!string.IsNullOrEmpty(ImageBase64))
             {
@@ -88,56 +120,84 @@
             }
         </div>
 
+        <!-- סיפור -->
         <div class="form-group">
-            <label>סיפור המתכון:</label>
-            <textarea class="form-textarea" @bind="Story" rows="4" placeholder="ספר את הסיפור מאחורי המתכון..."></textarea>
+            <label>הסיפור מאחורי המתכון</label>
+            <textarea class="form-textarea" @bind="Story" rows="4" placeholder="ספר את הסיפור..."></textarea>
         </div>
 
+        <!-- הוראות -->
         <div class="form-group">
-            <label>הוראות הכנה:</label>
+            <label>הוראות הכנה</label>
             <textarea class="form-textarea" @bind="Instructions" rows="6" placeholder="תאר את שלבי ההכנה..."></textarea>
         </div>
 
+        <!-- כפתורים -->
         <div class="action-buttons">
-            <button class="btn-back" @onclick="GoBack">חזרה לדף הבית</button>
+            <button class="btn-cancel" @onclick="GoBack">ביטול</button>
             @if (IsSaving)
             {
                 <button class="btn-save" disabled>שומר...</button>
             }
             else
             {
-                <button class="btn-save" @onclick="SaveRecipe">שמור מתכון</button>
+                <button class="btn-save" @onclick="SaveRecipe">💾 שמור מתכון</button>
             }
         </div>
     </div>
 </div>
 
 <style>
-    /* הסטייל המקורי שלך */
-    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
     * {
         font-family: 'Rubik', 'Assistant', sans-serif;
+        box-sizing: border-box;
     }
 
     .recipe-form-container {
-        max-width: 900px;
+        max-width: 1000px;
         margin: 40px auto;
         padding: 20px;
         direction: rtl;
+        position: relative;
     }
+
+    .back-btn {
+        position: absolute;
+        top: 0;
+        right: 20px;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        transition: all 0.3s ease;
+        z-index: 100;
+    }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+        }
 
     h2 {
         text-align: center;
         color: #414833;
         font-size: 2.5rem;
-        margin-bottom: 30px;
+        margin: 50px 0 30px 0;
     }
 
     .alert {
         padding: 15px;
-        border-radius: 10px;
+        border-radius: 12px;
         margin-bottom: 20px;
         font-weight: 500;
+        text-align: center;
     }
 
     .alert-danger {
@@ -146,10 +206,54 @@
         color: #cc0000;
     }
 
-    .alert-success {
-        background: #e6ffe6;
-        border: 2px solid #44ff44;
-        color: #008800;
+    .toast-notification {
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        box-shadow: 0 10px 30px rgba(65, 72, 51, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 1000;
+        animation: slideDown 0.4s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .toast-icon {
+        background: white;
+        color: #737A5D;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    @@keyframes slideDown {
+        from {
+            transform: translateX(-50%) translateY(-100px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes fadeOut {
+        to {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+        }
     }
 
     .form-card {
@@ -168,7 +272,7 @@
         display: block;
         color: #414833;
         font-weight: 600;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         font-size: 1.1rem;
     }
 
@@ -179,36 +283,244 @@
         border-radius: 12px;
         font-size: 1rem;
         background: white;
-        direction: rtl;
+        transition: all 0.3s ease;
     }
 
-    .btn-save {
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #737A5D;
+            box-shadow: 0 0 0 4px rgba(115, 122, 93, 0.2);
+        }
+
+    .form-textarea {
+        resize: vertical;
+    }
+
+    .file-input {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        background: white;
+        border: 2px dashed #A4AC86;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+
+    .image-preview {
+        margin-top: 15px;
+        text-align: center;
+        padding: 15px;
+        background: white;
+        border-radius: 12px;
+    }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+    .ingredients-selection {
+        background: rgba(255, 255, 255, 0.5);
+        padding: 25px;
+        border-radius: 15px;
+        margin: 30px 0;
+    }
+
+        .ingredients-selection h3 {
+            color: #414833;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+    .search-input {
+        background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23A4AC86" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>') no-repeat 15px center;
+        padding-right: 45px;
+    }
+
+    .btn-add-new-ingredient {
+        background: none;
+        border: 2px dashed #737A5D;
+        color: #737A5D;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin: 15px 0;
+        transition: all 0.3s ease;
+    }
+
+        .btn-add-new-ingredient:hover {
+            background: rgba(115, 122, 93, 0.1);
+            border-color: #414833;
+            color: #414833;
+        }
+
+    .new-ingredient-box {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin: 15px 0;
+        border: 2px solid #A4AC86;
+    }
+
+    .new-ingredient-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .btn-save-new {
+        flex: 1;
         background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
         color: white;
-        padding: 15px 40px;
         border: none;
-        border-radius: 12px;
+        border-radius: 10px;
+        padding: 10px;
         font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
     }
 
-    .btn-back {
+        .btn-save-new:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        }
+
+    .btn-cancel-new {
+        flex: 1;
         background: #e0e0e0;
         color: #555;
-        padding: 15px 40px;
         border: none;
-        border-radius: 12px;
+        border-radius: 10px;
+        padding: 10px;
         font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .btn-cancel-new:hover {
+            background: #d0d0d0;
+        }
+
+    .amount-size-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .btn-add-to-list {
+        width: 100%;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 15px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+    }
+
+        .btn-add-to-list:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(65, 72, 51, 0.4);
+            background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+        }
+
+    .ingredients-list-section {
+        margin: 30px 0;
+        padding: 25px;
+        background: rgba(115, 122, 93, 0.1);
+        border-radius: 15px;
+    }
+
+        .ingredients-list-section h3 {
+            color: #414833;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+    .no-ingredients {
+        text-align: center;
+        color: #999;
+        font-style: italic;
+        padding: 30px;
+        font-size: 1.1rem;
+    }
+
+    .ingredients-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
     }
 
     .ingredient-item {
         background: white;
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        border: 1px solid #EBE3D2;
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px solid #EBE3D2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
+
+        .ingredient-item:hover {
+            border-color: #A4AC86;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+    .ingredient-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .ingredient-number {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        min-width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .ingredient-text {
+        color: #414833;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+
+    .delete-btn {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3);
+        white-space: nowrap;
+    }
+
+        .delete-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
 
     .action-buttons {
         display: flex;
@@ -216,59 +528,132 @@
         margin-top: 30px;
         justify-content: center;
     }
+
+    .btn-save, .btn-cancel {
+        padding: 15px 40px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
+    }
+
+        .btn-save:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(65, 72, 51, 0.45);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    .btn-cancel {
+        background: #e0e0e0;
+        color: #555;
+    }
+
+        .btn-cancel:hover {
+            background: #d0d0d0;
+        }
+
+    @@media (max-width: 768px) {
+        .back-btn {
+            position: static;
+            display: block;
+            margin: 0 auto 20px;
+            width: fit-content;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+
+        .amount-size-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 @code {
     List<string> Ingredients = new List<string>();
+    List<string> AddedIngredientNames = new List<string>();
+    List<RecipeIngredientModel> RecipeIngredients = new List<RecipeIngredientModel>();
+
     string RecipeName = "";
     string Story = "";
     string Instructions = "";
     string ImageBase64 = "";
     string SelectedIngredient = "";
-    double Amount = 0;
+    string AmountInput = "";
     string Size = "";
-    List<RecipeIngredientModel> RecipeIngredients = new List<RecipeIngredientModel>();
-    bool AddingNew = false;
     string NewIngredientName = "";
-    int CurrentUserID = 0;
-    bool IsSaving = false;
+    string searchTerm = "";
     string ErrorMessage = "";
-    string SuccessMessage = "";
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    bool AddingNew = false;
+    bool IsSaving = false;
+    bool showSuccessToast = false;
+    int CurrentUserID = 0;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
+        ProtectedBrowserStorageResult<int> resultID = await Session.GetAsync<int>("customerid");
+
+        if (!resultID.Success || resultID.Value <= 0)
         {
-            try
+            Navigation.NavigateTo("/Login");
+            return;
+        }
+
+        CurrentUserID = resultID.Value;
+
+        IngredientDB db = new IngredientDB();
+        List<Ingredient> list = await db.GetAllAsync();
+
+        if (list != null)
+        {
+            for (int i = 0; i < list.Count; i++)
             {
-                ProtectedBrowserStorageResult<int> resultID = await Session.GetAsync<int>("customerid");
-
-                if (!resultID.Success || resultID.Value <= 0)
-                {
-                    navigationManager.NavigateTo("/Login");
-                    return;
-                }
-
-                CurrentUserID = resultID.Value;
-
-                IngredientDB db = new IngredientDB();
-                List<Ingredient> list = await db.GetAllAsync();
-
-                if (list != null)
-                {
-                    for (int i = 0; i < list.Count; i++)
-                    {
-                        Ingredients.Add(list[i].IngredientName);
-                    }
-                    StateHasChanged();
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"שגיאה בטעינת הנתונים: {ex.Message}";
-                StateHasChanged();
+                Ingredients.Add(list[i].IngredientName);
             }
         }
+    }
+
+    List<string> GetFilteredIngredients()
+    {
+        List<string> filtered = new List<string>();
+
+        for (int i = 0; i < Ingredients.Count; i++)
+        {
+            bool alreadyAdded = false;
+            for (int j = 0; j < AddedIngredientNames.Count; j++)
+            {
+                if (Ingredients[i] == AddedIngredientNames[j])
+                {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!alreadyAdded)
+            {
+                if (string.IsNullOrWhiteSpace(searchTerm) ||
+                    Ingredients[i].Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                {
+                    filtered.Add(Ingredients[i]);
+                }
+            }
+        }
+
+        return filtered;
     }
 
     async Task HandleImageUpload(InputFileChangeEventArgs e)
@@ -284,8 +669,8 @@
                 return;
             }
 
-            System.IO.Stream stream = file.OpenReadStream(maxFileSize);
-            System.IO.MemoryStream ms = new System.IO.MemoryStream();
+            using System.IO.Stream stream = file.OpenReadStream(maxFileSize);
+            using System.IO.MemoryStream ms = new System.IO.MemoryStream();
             await stream.CopyToAsync(ms);
             byte[] buffer = ms.ToArray();
 
@@ -293,7 +678,6 @@
             ImageBase64 = $"data:{file.ContentType};base64,{base64}";
 
             ErrorMessage = "";
-            SuccessMessage = "התמונה הועלתה בהצלחה!";
         }
         catch (Exception ex)
         {
@@ -306,10 +690,15 @@
         AddingNew = true;
     }
 
+    void CancelAddNew()
+    {
+        AddingNew = false;
+        NewIngredientName = "";
+    }
+
     async Task SaveNewIngredient()
     {
         ErrorMessage = "";
-        SuccessMessage = "";
 
         if (string.IsNullOrWhiteSpace(NewIngredientName))
         {
@@ -322,14 +711,12 @@
             IngredientDB db = new IngredientDB();
             Ingredient item = new Ingredient();
             item.IngredientName = NewIngredientName.Trim();
-
             Ingredient result = await db.InsertGetObjAsync(item);
 
-            Ingredients.Add(item.IngredientName);
-            SelectedIngredient = item.IngredientName;
+            Ingredients.Add(NewIngredientName.Trim());
+            SelectedIngredient = NewIngredientName.Trim();
             NewIngredientName = "";
             AddingNew = false;
-            SuccessMessage = "רכיב נוסף בהצלחה!";
         }
         catch (Exception ex)
         {
@@ -340,47 +727,84 @@
     void AddToList()
     {
         ErrorMessage = "";
-        if (string.IsNullOrWhiteSpace(SelectedIngredient) || Amount <= 0 || string.IsNullOrWhiteSpace(Size))
+
+        if (string.IsNullOrWhiteSpace(SelectedIngredient))
         {
-            ErrorMessage = "נא למלא את כל פרטי הרכיב (שם, כמות ומידה)";
+            ErrorMessage = "נא לבחור רכיב";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(AmountInput))
+        {
+            ErrorMessage = "נא להזין כמות";
+            return;
+        }
+
+        double amount;
+        if (!double.TryParse(AmountInput, out amount) || amount <= 0)
+        {
+            ErrorMessage = "נא להזין כמות תקינה (למשל: 0.5, 1, 2.5)";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Size))
+        {
+            ErrorMessage = "נא להזין יחידה";
             return;
         }
 
         RecipeIngredientModel model = new RecipeIngredientModel();
         model.Name = SelectedIngredient;
-        model.Amount = Amount;
+        model.Amount = amount;
         model.Size = Size;
-
         RecipeIngredients.Add(model);
+        AddedIngredientNames.Add(SelectedIngredient);
 
         SelectedIngredient = "";
-        Amount = 0;
+        AmountInput = "";
         Size = "";
-        SuccessMessage = "רכיב נוסף לרשימה!";
+        searchTerm = "";
+    }
+
+    void RemoveIngredient(int index)
+    {
+        if (index >= 0 && index < RecipeIngredients.Count)
+        {
+            string ingredientName = RecipeIngredients[index].Name;
+            RecipeIngredients.RemoveAt(index);
+
+            for (int i = 0; i < AddedIngredientNames.Count; i++)
+            {
+                if (AddedIngredientNames[i] == ingredientName)
+                {
+                    AddedIngredientNames.RemoveAt(i);
+                    break;
+                }
+            }
+        }
     }
 
     async Task SaveRecipe()
     {
         ErrorMessage = "";
-        SuccessMessage = "";
+        showSuccessToast = false;
+
+        if (string.IsNullOrWhiteSpace(RecipeName))
+        {
+            ErrorMessage = "נא להזין שם מתכון";
+            return;
+        }
+
+        if (RecipeIngredients.Count == 0)
+        {
+            ErrorMessage = "נא להוסיף לפחות רכיב אחד";
+            return;
+        }
+
         IsSaving = true;
 
         try
         {
-            if (string.IsNullOrWhiteSpace(RecipeName))
-            {
-                ErrorMessage = "נא להזין שם מתכון";
-                IsSaving = false;
-                return;
-            }
-
-            if (RecipeIngredients.Count == 0)
-            {
-                ErrorMessage = "נא להוסיף לפחות רכיב אחד";
-                IsSaving = false;
-                return;
-            }
-
             RecipeDB db = new RecipeDB();
             Recipes newRecipe = new Recipes();
             newRecipe.UserID = CurrentUserID;
@@ -391,33 +815,53 @@
 
             Recipes insertedRecipe = await db.InsertGetObjAsync(newRecipe);
 
-            if (insertedRecipe != null && insertedRecipe.RecipeID > 0)
+            if (insertedRecipe == null || insertedRecipe.RecipeID <= 0)
             {
-                RecipeIngredientDB riDb = new RecipeIngredientDB();
-                IngredientDB ingDB = new IngredientDB();
-
-                for (int i = 0; i < RecipeIngredients.Count; i++)
-                {
-                    List<Ingredient> found = await ingDB.SearchIngredientsByNameAsync(RecipeIngredients[i].Name);
-                    if (found != null && found.Count > 0)
-                    {
-                        RecipeIngredient ri = new RecipeIngredient();
-                        ri.RecipeID = insertedRecipe.RecipeID;
-                        ri.IngredientID = found[0].IngredientID;
-                        ri.Quantity = RecipeIngredients[i].Amount;
-                        ri.Size = RecipeIngredients[i].Size;
-
-                        await riDb.InsertAsync(ri);
-                    }
-                }
-
-                SuccessMessage = "המתכון נשמר בהצלחה!";
-                ResetForm();
+                ErrorMessage = "שגיאה בשמירת המתכון";
+                return;
             }
+
+            RecipeIngredientDB ingredientDb = new RecipeIngredientDB();
+            IngredientDB ingDB = new IngredientDB();
+
+            for (int i = 0; i < RecipeIngredients.Count; i++)
+            {
+                List<Ingredient> ingredientsList = await ingDB.SearchIngredientsByNameAsync(RecipeIngredients[i].Name);
+
+                if (ingredientsList != null && ingredientsList.Count > 0)
+                {
+                    Ingredient ing = ingredientsList[0];
+
+                    RecipeIngredient ri = new RecipeIngredient();
+                    ri.RecipeID = insertedRecipe.RecipeID;
+                    ri.IngredientID = ing.IngredientID;
+                    ri.Quantity = RecipeIngredients[i].Amount;
+                    ri.Size = RecipeIngredients[i].Size;
+
+                    int insertResult = await ingredientDb.InsertAsync(ri);
+                }
+            }
+
+            showSuccessToast = true;
+            StateHasChanged();
+
+            await Task.Delay(3000);
+            showSuccessToast = false;
+
+            RecipeName = "";
+            Story = "";
+            Instructions = "";
+            ImageBase64 = "";
+            RecipeIngredients.Clear();
+            AddedIngredientNames.Clear();
+            SelectedIngredient = "";
+            AmountInput = "";
+            Size = "";
+            searchTerm = "";
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"שגיאה בשמירת המתכון: {ex.Message}";
+            ErrorMessage = $"שגיאה: {ex.Message}";
         }
         finally
         {
@@ -425,15 +869,9 @@
         }
     }
 
-    void ResetForm()
-    {
-        RecipeName = ""; Story = ""; Instructions = ""; ImageBase64 = "";
-        RecipeIngredients.Clear(); SelectedIngredient = ""; Amount = 0; Size = "";
-    }
-
     void GoBack()
     {
-        navigationManager.NavigateTo("/AfterLog");
+        Navigation.NavigateTo("/AfterLog");
     }
 
     class RecipeIngredientModel
