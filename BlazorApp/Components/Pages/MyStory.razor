@@ -2,7 +2,7 @@
 @using Models
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject NavigationManager Navigation
+@inject NavigationManager Nav
 @inject ProtectedSessionStorage Session
 @inject IJSRuntime JSRuntime
 
@@ -249,8 +249,9 @@
 @code {
     [Parameter]
     public int RecipeID { get; set; }
-
     private Recipes Recipe { get; set; }
+    public int? MealId { get; set; }
+
     private List<DisplayRecipeIngredientModel> DisplayIngredients = new List<DisplayRecipeIngredientModel>();
     private bool IsLoading = true;
     private string ErrorMessage = "";
@@ -342,9 +343,9 @@
         return steps;
     }
 
-    private void GoBack()
+    void GoBack()
     {
-        Navigation.NavigateTo("/AfterLog");
+        Nav.NavigateTo($"/Meal/{MealId}");
     }
 
     private class DisplayRecipeIngredientModel
