@@ -43,14 +43,18 @@ namespace DBL
 
         public async Task<int> UpdateAsync(Meals meal)
         {
-            Dictionary<string, object> filterValues = new Dictionary<string, object>();
-            Dictionary<string, object> fillValues = new Dictionary<string, object>()
-    {
-        { "user_id", meal.userID }, 
-        { "name", meal.name }
-    };
-            return await base.UpdateAsync(fillValues, filterValues);
+            Dictionary<string, object> values = new Dictionary<string, object>()
+            {
+                { "user_id", meal.userID },
+                { "name", meal.name }
+            };
 
+            Dictionary<string, object> filter = new Dictionary<string, object>()
+            {
+                { "idMeals", meal.mealID }
+            };
+
+            return await base.UpdateAsync(values, filter);
         }
 
         public async Task<Meals> SelectByPkAsync(int MealID)
@@ -71,13 +75,28 @@ namespace DBL
             return (List<Meals>)await SelectAllAsync(p);
         }
 
-        public async Task<int> UpdateNameAsync(int MealId, string name)
+        public async Task<int> UpdateNameAsync(int mealId, string name)
         {
-            Dictionary<string, object> fillValues = new Dictionary<string, object>();
-            Dictionary<string, object> filterValues = new Dictionary<string, object>();
-            fillValues.Add("name", name);
-            filterValues.Add("idMeals", MealId);
-            return await base.UpdateAsync(fillValues, filterValues);
+            Dictionary<string, object> values = new Dictionary<string, object>()
+            {
+                { "name", name }
+            };
+
+            Dictionary<string, object> filter = new Dictionary<string, object>()
+            {
+                { "idMeals", mealId }
+            };
+
+            return await base.UpdateAsync(values, filter);
         }
+
+        public async Task<int> DeleteAsync(int mealId)
+        {
+            Dictionary<string, object> filterValues = new Dictionary<string, object>();
+            filterValues.Add("idMeals", mealId);
+
+            return await base.DeleteAsync(filterValues);
+        }
+
     }
 }

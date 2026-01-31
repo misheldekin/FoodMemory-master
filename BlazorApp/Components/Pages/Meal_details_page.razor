@@ -2,42 +2,59 @@
 @using Models
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject NavigationManager Nav
 @inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
 
-<h2>פרטי הארוחה</h2>
+<div class="page-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">
+        ← חזרה
+    </button>
 
-@if (meal == null)
-{
-    <p>טוען ארוחה...</p>
-}
-else
-{
-    <div class="meal-card">
-        <h3>@meal.name</h3>
-
-        <h4>מתכונים בארוחה:</h4>
+    @if (meal == null || mealRecipes == null)
+    {
+        <p class="loading">טוען ארוחה...</p>
+    }
+    else
+    {
+        <div class="meal-header">
+            <div class="meal-icon">🍽️</div>
+            <h2>@meal.name</h2>
+        </div>
+        <div class="update-container">
+            <button class="btn secondary update-btn" @onclick="EditMeal">✏️ עדכן ארוחה</button>
+        </div>
 
         @if (recipes.Count == 0)
         {
-            <p>אין מתכונים בארוחה</p>
+            <div class="empty-state">
+                <p>לא נמצאו מתכונים בארוחה זו</p>
+            </div>
         }
+
+
         else
         {
-            <ul>
-                @for (int i = 0; i < recipes.Count; i++)
-                {
-                    <li>
-                        <button @onclick="() => GoToRecipe(recipes[i].RecipeID)">
-                            @recipes[i].
-                        </button>
-                    </li>
-                }
-            </ul>
+            <div class="recipes-section">
+                <h3>המתכונים בארוחה (@recipes.Count)</h3>
+                <div class="recipes-grid">
+                    @for (int i = 0; i < recipes.Count; i++)
+                    {
+                        int currentIndex = i;
+                        <div class="recipe-card" @onclick="@(() => GoToRecipe(recipes[currentIndex].RecipeID))">
+                            <div class="recipe-image">
+                                <img src="@(string.IsNullOrEmpty(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)" alt="@recipes[currentIndex].Name" />
+                            </div>
+                            <div class="recipe-info">
+                                <h4>@recipes[currentIndex].Name</h4>
+                                <p class="click-hint">👁️ לחץ לצפייה במתכון</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
         }
-    </div>
-}
-
+    }
+</div>
 
 <style>
     @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
@@ -73,11 +90,11 @@ else
         z-index: 100;
     }
 
-        .back-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
-            background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
-        }
+    .back-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+        background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+    }
 
     .loading {
         text-align: center;
@@ -125,22 +142,22 @@ else
         margin-top: 40px;
     }
 
-        .empty-state p {
-            color: #737A5D;
-            font-size: 1.2rem;
-        }
+    .empty-state p {
+        color: #737A5D;
+        font-size: 1.2rem;
+    }
 
     .recipes-section {
         margin: 40px 0;
     }
 
-        .recipes-section h3 {
-            color: #414833;
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 30px;
-            text-align: center;
-        }
+    .recipes-section h3 {
+        color: #414833;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 30px;
+        text-align: center;
+    }
 
     .recipes-grid {
         display: grid;
@@ -159,11 +176,11 @@ else
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
     }
 
-        .recipe-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-            border-color: #737A5D;
-        }
+    .recipe-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        border-color: #737A5D;
+    }
 
     .recipe-image {
         width: 100%;
@@ -172,12 +189,12 @@ else
         position: relative;
     }
 
-        .recipe-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
+    .recipe-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
 
     .recipe-card:hover .recipe-image img {
         transform: scale(1.1);
@@ -187,15 +204,15 @@ else
         padding: 20px;
     }
 
-        .recipe-info h4 {
-            color: #414833;
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin: 0 0 10px 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+    .recipe-info h4 {
+        color: #414833;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0 0 10px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
     .click-hint {
         color: #737A5D;
@@ -218,45 +235,54 @@ else
             text-align: center;
         }
 
-            .meal-header h2 {
-                font-size: 2rem;
-            }
+        .meal-header h2 {
+            font-size: 2rem;
+        }
 
         .recipes-grid {
             grid-template-columns: 1fr;
         }
-    }
-</style>
-@code {
 
+        .update-btn {
+            margin-left: 20px;
+            padding: 8px 15px;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            background: #e0d9c6;
+            color: #414833;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+            .update-btn:hover {
+                background: #d4cbb3;
+            }
+    }
+
+</style>
+
+@code {
     [Parameter]
     public int MealId { get; set; }
 
-    private Meals meal;
-    private List<Recipes> recipes = new List<Recipes>();
-    private List<MealRecipe> mealRecipes;
+    Meals meal;
+    List<MealRecipe> mealRecipes;
+    List<Recipes> recipes = new List<Recipes>();
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        meal = null;
-        recipes.Clear();
-        mealRecipes = null;
-
-        ProtectedBrowserStorageResult<int> userIdResult =
-            await Session.GetAsync<int>("customerid");
-
+        ProtectedBrowserStorageResult<int> userIdResult = await Session.GetAsync<int>("customerid");
         if (!userIdResult.Success)
         {
             Nav.NavigateTo("/login");
             return;
         }
 
-        int userId = userIdResult.Value;
-
         MealsDB mealsDB = new MealsDB();
         meal = await mealsDB.SelectByPkAsync(MealId);
 
-        if (meal == null || meal.userID != userId)
+        if (meal == null || meal.userID != userIdResult.Value)
         {
             Nav.NavigateTo("/MyMeals");
             return;
@@ -268,12 +294,9 @@ else
         if (mealRecipes != null)
         {
             RecipeDB recipeDB = new RecipeDB();
-
             for (int i = 0; i < mealRecipes.Count; i++)
             {
-                Recipes recipe =
-                    await recipeDB.SelectByPkAsync(mealRecipes[i].RecipeID);
-
+                Recipes recipe = await recipeDB.SelectByPkAsync(mealRecipes[i].RecipeID);
                 if (recipe != null)
                 {
                     recipes.Add(recipe);
@@ -282,8 +305,20 @@ else
         }
     }
 
-    private void GoToRecipe(int recipeId)
+    void GoToRecipe(int recipeId)
     {
-        Nav.NavigateTo($"/Recipe/{recipeId}?mealId={MealId}");
+        Nav.NavigateTo($"/Recipe/{recipeId}");
     }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/MyMeals");
+    }
+
+    void EditMeal()
+    {
+        Nav.NavigateTo($"/EditMeal/{MealId}");
+    }
+
+
 }
