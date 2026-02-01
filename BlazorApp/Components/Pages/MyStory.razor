@@ -299,7 +299,7 @@
                         {
                             Name = ing.IngredientName,
                             Amount = (double)ri.Quantity,
-                            Size = ri.Size 
+                            Size = ri.Size
                         });
                     }
                 }
@@ -343,11 +343,30 @@
         return steps;
     }
 
-    void GoBack()
+    async Task GoBack()
     {
-        Nav.NavigateTo("/AfterLog");
+        try
+        {
+            // נסיון לקבלת הדף הקודם מ-sessionStorage
+            var previousPageResult = await Session.GetAsync<string>("previousPage");
+            if (previousPageResult.Success && !string.IsNullOrEmpty(previousPageResult.Value))
+            {
+                string previousPage = previousPageResult.Value;
+                await Session.DeleteAsync("previousPage");
+                Nav.NavigateTo(previousPage);
+            }
+            else
+            {
+                // אם אין דף קודם, חזרה לעמוד הבית
+                Nav.NavigateTo("/AfterLog");
+            }
+        }
+        catch
+        {
+            // במקרה של שגיאה, חזרה לעמוד הבית
+            Nav.NavigateTo("/AfterLog");
+        }
     }
-
 
     private class DisplayRecipeIngredientModel
     {

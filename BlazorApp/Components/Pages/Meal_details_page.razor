@@ -40,7 +40,7 @@
                     @for (int i = 0; i < recipes.Count; i++)
                     {
                         int currentIndex = i;
-                        <div class="recipe-card" @onclick="@(() => GoToRecipe(recipes[currentIndex].RecipeID))">
+                        <div class="recipe-card" @onclick="@(async () => await GoToRecipe(recipes[currentIndex].RecipeID))">
                             <div class="recipe-image">
                                 <img src="@(string.IsNullOrEmpty(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)" alt="@recipes[currentIndex].Name" />
                             </div>
@@ -90,11 +90,11 @@
         z-index: 100;
     }
 
-    .back-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
-        background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
-    }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+            background: linear-gradient(135deg, #A4AC86 0%, #737A5D 100%);
+        }
 
     .loading {
         text-align: center;
@@ -142,22 +142,22 @@
         margin-top: 40px;
     }
 
-    .empty-state p {
-        color: #737A5D;
-        font-size: 1.2rem;
-    }
+        .empty-state p {
+            color: #737A5D;
+            font-size: 1.2rem;
+        }
 
     .recipes-section {
         margin: 40px 0;
     }
 
-    .recipes-section h3 {
-        color: #414833;
-        font-size: 1.8rem;
-        font-weight: 600;
-        margin-bottom: 30px;
-        text-align: center;
-    }
+        .recipes-section h3 {
+            color: #414833;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+        }
 
     .recipes-grid {
         display: grid;
@@ -176,11 +176,11 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
     }
 
-    .recipe-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-        border-color: #737A5D;
-    }
+        .recipe-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: #737A5D;
+        }
 
     .recipe-image {
         width: 100%;
@@ -189,12 +189,12 @@
         position: relative;
     }
 
-    .recipe-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
+        .recipe-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
 
     .recipe-card:hover .recipe-image img {
         transform: scale(1.1);
@@ -204,15 +204,15 @@
         padding: 20px;
     }
 
-    .recipe-info h4 {
-        color: #414833;
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin: 0 0 10px 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+        .recipe-info h4 {
+            color: #414833;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
     .click-hint {
         color: #737A5D;
@@ -235,9 +235,9 @@
             text-align: center;
         }
 
-        .meal-header h2 {
-            font-size: 2rem;
-        }
+            .meal-header h2 {
+                font-size: 2rem;
+            }
 
         .recipes-grid {
             grid-template-columns: 1fr;
@@ -305,14 +305,46 @@
         }
     }
 
-    void GoToRecipe(int recipeId)
+    async Task GoToRecipe(int recipeId)
     {
-        Nav.NavigateTo($"/Recipe/{recipeId}");
+        // שמירת הדף הנוכחי (ארוחה) ב-sessionStorage לפני עברה למתכון
+        try
+        {
+            await Session.SetAsync("previousPage", $"/Meal/{MealId}");
+            await Task.Delay(100); // דיליי קטן כדי להיות בטוחים שהנתונים נשמרו
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving previous page: {ex.Message}");
+        }
+        finally
+        {
+            Nav.NavigateTo($"/Recipe/{recipeId}");
+        }
     }
 
-    void GoBack()
+    async Task GoBack()
     {
-        Nav.NavigateTo("/MyMeals");
+        try
+        {
+            // נסיון לקבלת הדף הקודם מ-sessionStorage
+            var previousPageResult = await Session.GetAsync<string>("previousPage");
+            if (previousPageResult.Success && !string.IsNullOrEmpty(previousPageResult.Value))
+            {
+                string previousPage = previousPageResult.Value;
+                await Session.DeleteAsync("previousPage");
+                Nav.NavigateTo(previousPage);
+            }
+            else
+            {
+                // אם אין דף קודם, חזרה לדף הארוחות שלי
+                Nav.NavigateTo("/MyMeals");
+            }
+        }
+        catch
+        {
+            Nav.NavigateTo("/MyMeals");
+        }
     }
 
     void EditMeal()
