@@ -1,6 +1,418 @@
 ﻿@page "/"
-<h3>HOME</h3>
+@using Models
+@using DBL
+@inject NavigationManager navigationManager
+@inject IJSRuntime JS
+
+<div class="main-layout">
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="brand" @onclick="GoHome">
+                <span class="brand-emoji">🍳</span>
+                <span class="brand-text">סיפורי אוכל</span>
+            </div>
+
+            <div class="nav-actions">
+                <button class="action-link" @onclick="GoToLogin">כניסה</button>
+                <button class="action-link" @onclick="GoToRegister">הרשמה</button>
+                <button class="chef-special-btn" @onclick="GoToChefLogin">
+                    <span>כניסת שפים</span>
+                    <i class="emoji">👨‍🍳</i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="minimal-hero">
+        <div class="hero-overlay">
+            <div class="hero-text">
+                <h1 class="fade-in">מתכונים עם סיפור משפחתי</h1>
+                <p class="fade-in-delayed">המקום בו זיכרונות וטעמים נפגשים</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="search-wrapper">
+        <div class="floating-search">
+            <input @bind="SearchQuery"
+                   @bind:event="oninput"
+                   type="text"
+                   placeholder="חפשו מתכון, רכיב או עדה..."
+                   @onkeyup="HandleKeyPress" />
+            <button class="search-trigger" @onclick="SearchRecipes">
+                <span>חיפוש</span>
+            </button>
+        </div>
+    </div>
+
+    <main class="content-container">
+        <div class="section-title-area">
+            <h2>@(string.IsNullOrWhiteSpace(SearchQuery) ? "מתכונים נבחרים" : "תוצאות חיפוש")</h2>
+            @if (!string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                <button class="btn-clear" @onclick="ClearSearch">ביטול חיפוש</button>
+            }
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loader-container">
+                <div class="simple-loader"></div>
+            </div>
+        }
+        else if (displayedRecipes == null || !displayedRecipes.Any())
+        {
+            <div class="empty-state">
+                <p>לא מצאנו מתכון כזה... אולי תנסו משהו אחר?</p>
+            </div>
+        }
+        else
+        {
+            <div class="recipe-grid">
+                @foreach (var recipe in displayedRecipes)
+                {
+                    <div class="modern-card" @onclick="@(() => ViewRecipe(recipe.RecipeID))">
+                        <div class="card-image">
+                            <img src="@(string.IsNullOrEmpty(recipe.ImageURL) ? "/images/defultpic.jpg" : recipe.ImageURL)" alt="@recipe.Name" />
+                            <div class="card-badge">מתכון משפחתי</div>
+                        </div>
+                        <div class="card-body">
+                            <h3>@recipe.Name</h3>
+                            <p>@(recipe.Story?.Length > 55 ? recipe.Story.Substring(0, 55) + "..." : recipe.Story)</p>
+                            <span class="read-more">לקריאת המתכון ←</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </main>
+
+    <footer class="minimal-footer">
+        <p>© 2026 סיפורי אוכל משפחתיים</p>
+    </footer>
+</div>
+
+<style>
+    :root {
+        --primary: #2d3436;
+        --accent: #6c5ce7;
+        --bg: #f9f9f9;
+        --text-light: #636e72;
+    }
+
+    .main-layout {
+        direction: rtl;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background-color: var(--bg);
+        min-height: 100vh;
+    }
+
+    /* --- NAV --- */
+    .top-nav {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        border-bottom: 1px solid #eee;
+    }
+
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .brand-emoji {
+        font-size: 1.8rem;
+    }
+
+    .brand-text {
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: var(--primary);
+    }
+
+    .nav-actions {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .action-link {
+        background: none;
+        border: none;
+        font-weight: 500;
+        color: var(--text-light);
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .action-link:hover {
+            color: var(--primary);
+        }
+
+    .chef-special-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        cursor: pointer;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        transition: 0.3s;
+    }
+
+        .chef-special-btn:hover {
+            transform: scale(1.05);
+            background: #000;
+        }
+
+    /* --- HERO --- */
+    .minimal-hero {
+        height: 40vh;
+        background: url('/images/FamiltPic.jpg') center/cover;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.5));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hero-text {
+        text-align: center;
+        color: white;
+    }
+
+        .hero-text h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+    /* --- SEARCH --- */
+    .search-wrapper {
+        max-width: 700px;
+        margin: -35px auto 40px;
+        padding: 0 20px;
+        position: relative;
+        z-index: 10;
+    }
+
+    .floating-search {
+        background: white;
+        display: flex;
+        padding: 8px;
+        border-radius: 100px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+        .floating-search input {
+            flex: 1;
+            border: none;
+            padding: 0 25px;
+            outline: none;
+            font-size: 1.1rem;
+        }
+
+    .search-trigger {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 100px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    /* --- CARDS --- */
+    .content-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .section-title-area {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 30px;
+    }
+
+    .modern-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        transition: 0.4s;
+        cursor: pointer;
+        border: 1px solid #f0f0f0;
+    }
+
+        .modern-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        }
+
+    .card-image {
+        position: relative;
+        height: 200px;
+    }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .card-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.9);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+        .card-body h3 {
+            margin: 0 0 10px;
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .card-body p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+    .read-more {
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .minimal-footer {
+        text-align: center;
+        padding: 40px;
+        color: #bbb;
+        font-size: 0.9rem;
+    }
+
+    /* Animations */
+    .fade-in {
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .hero-text h1 {
+            font-size: 2rem;
+        }
+
+        .nav-actions {
+            gap: 0.8rem;
+        }
+
+        .brand-text {
+            display: none;
+        }
+    }
+</style>
 
 @code {
+    private List<Recipes> allRecipes;
+    private List<Recipes> displayedRecipes;
+    private string SearchQuery = "";
+    private bool isLoading = true;
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            RecipeDB db = new RecipeDB();
+            allRecipes = await db.GetAllAsync();
+            displayedRecipes = allRecipes;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchRecipes()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            displayedRecipes = allRecipes;
+        }
+        else
+        {
+            RecipeDB db = new RecipeDB();
+            displayedRecipes = (List<Recipes>)await db.SearchRecipesByNameAsync(SearchQuery);
+        }
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") SearchRecipes();
+    }
+
+    private void ClearSearch()
+    {
+        SearchQuery = "";
+        displayedRecipes = allRecipes;
+    }
+
+    private void ViewRecipe(int recipeId) => navigationManager.NavigateTo($"/Recipe/{recipeId}");
+    private void GoToLogin() => navigationManager.NavigateTo("/Login");
+    private void GoToRegister() => navigationManager.NavigateTo("/Register");
+    private void GoToChefLogin() => navigationManager.NavigateTo("/ChefLogin");
+    private void GoHome() => navigationManager.NavigateTo("/");
 }

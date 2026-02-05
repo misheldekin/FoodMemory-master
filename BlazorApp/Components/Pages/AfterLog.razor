@@ -12,8 +12,8 @@
                 <a href="/AfterLog" class="nav-item">🏠 דף בית</a>
                 <a href="/MyRecipes" class="nav-item">🍲 המתכונים שלי</a>
                 <a href="/MyMeals" class="nav-item">🍽️ הארוחות שלי</a>
-                <a href="#" class="nav-item">👨‍🍳 שפים</a>
-                <a href="#" class="nav-item">📦 ההזמנות שלי</a>
+                <a href="/Chefs" class="nav-item">👨‍🍳 שפים</a>
+                <a href="/MyOrders" class="nav-item">📦 ההזמנות שלי</a>
             </nav>
             <div class="user-profile" @onclick="GoToProfile" title="עדכון פרופיל">
                 <img src="@profileImage" alt="פרופיל" class="profile-icon">
@@ -60,44 +60,32 @@
 
             <!-- Recipes List -->
             <h2>סיפורים מרגשים</h2>
-            <div class="stories-list">
-                @if (recipes == null || recipes.Count == 0)
+
+            @if (recipes == null || recipes.Count == 0)
+            {
+                <p>לא נמצאו מתכונים.</p>
+            }
+            else
+            {
+                @for (int i = 0; i < recipes.Count; i += 6)
                 {
-                    <p>לא נמצאו מתכונים.</p>
-                }
-                else
-                {
-                    @for (int i = 0; i < recipes.Count; i++)
-                    {
-                        <a href="@($"/Recipe/{recipes[i].RecipeID}")" class="story-card-link">
-                            <div class="story-card">
-                                <img src="@(string.IsNullOrWhiteSpace(recipes[i].ImageURL) ? "/images/defultpic.jpg" : recipes[i].ImageURL)" alt="@recipes[i].Name">
-                                <p>@recipes[i].Name</p>
+                    <div class="stories-list">
+                        @for (int j = i; j < i + 6 && j < recipes.Count; j++)
+                        {
+                            int currentIndex = j;
+                            <div class="story-card-link" @onclick="@(async () => await NavigateToRecipe(recipes[currentIndex].RecipeID))">
+                                <div class="story-card">
+                                    <img src="@(string.IsNullOrWhiteSpace(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)" alt="@recipes[currentIndex].Name">
+                                    <p>@recipes[currentIndex].Name</p>
+                                </div>
                             </div>
-                        </a>
-                    }
+                        }
+                    </div>
                 }
-            </div>
+            }
         </section>
 
-        <!-- Chefs Section -->
-        <section class="chefs-section">
-            <h2>שפים מומלצים</h2>
-            <div class="chefs-list">
-                <div class="chef-card">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/%D7%97%D7%99%D7%99%D7%9D_%D7%9B%D7%94%D7%9F-_%D7%9E%D7%90%D7%A1%D7%98%D7%A8_%D7%A9%D7%A3_8.jpg" alt="שף חיים">
-                    <p>שף חיים</p>
-                </div>
-                <div class="chef-card">
-                    <img src="https://ynet-pic1.yit.co.il/picserver5/crop_images/2021/04/13/B1mYK0GL00/B1mYK0GL00_0_10_1101_620_0_x-large.jpg" alt="שף אסף">
-                    <p>שף אסף</p>
-                </div>
-                <div class="chef-card">
-                    <img src="https://images1.ynet.co.il/PicServer5/2018/05/13/8527772/85277700100270640360no.jpg" alt="שף ישראל">
-                    <p>שף ישראל</p>
-                </div>
-            </div>
-        </section>
+
     </main>
 </div>
 
@@ -279,39 +267,44 @@
         }
 
     @@media (min-width: 768px) {
-        .search-container
+        .search-container {
+            flex-direction: row;
+        }
 
-    {
-        flex-direction: row;
-    }
-
-    .search-input {
-        margin-right: 10px;
-    }
-
+        .search-input {
+            margin-right: 10px;
+        }
     }
 
     .stories-list {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
         gap: 20px;
-        overflow-x: auto;
-        padding-bottom: 10px;
+        padding: 20px 0;
+        margin-bottom: 20px;
     }
 
-    .story-card {
-        flex: 0 0 180px;
-        max-width: 180px;
+    .story-card-link {
         text-align: center;
         padding: 0;
         border-radius: 16px;
         background-color: white;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         transition: transform 0.2s;
+        cursor: pointer;
     }
 
-        .story-card:hover {
+        .story-card-link:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
         }
+
+    .story-card {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
 
         .story-card img {
             width: 100%;
@@ -324,41 +317,10 @@
             font-weight: bold;
             color: #333;
             margin: 10px 0;
-        }
-
-    .chefs-list {
-        display: flex;
-        gap: 20px;
-    }
-
-    .chef-card {
-        flex: 1;
-        max-width: calc(33.33% - 14px);
-        text-align: center;
-        padding: 15px;
-        border-radius: 8px;
-        transition: transform 0.2s;
-        background-color: white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-        .chef-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .chef-card img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 10px;
-            border: 3px solid #6a994e;
-        }
-
-        .chef-card span {
-            display: block;
-            font-size: 0.9em;
-            color: #777;
+            padding: 0 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
     .logout-container {
@@ -396,48 +358,49 @@
             }
 
     @@media (max-width: 768px) {
-        .logout-container
+        .logout-container {
+            position: static;
+            transform: none;
+            margin-top: 10px;
+        }
 
-    {
-        position: static;
-        transform: none;
-        margin-top: 10px;
+        .stories-list {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
+    @@media (max-width: 600px) {
+        .stories-list {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 
     @@media (max-width: 1024px) {
-        .nav-item
-
-    {
-        font-size: 1em;
-        padding: 8px 14px;
-    }
-
+        .nav-item {
+            font-size: 1em;
+            padding: 8px 14px;
+        }
     }
 
     @@media (max-width: 768px) {
-        .header-content
+        .header-content {
+            flex-direction: column;
+            gap: 15px;
+        }
 
-    {
-        flex-direction: column;
-        gap: 15px;
-    }
+        .nav-bar {
+            justify-content: center;
+            gap: 12px;
+        }
 
-    .nav-bar {
-        justify-content: center;
-        gap: 12px;
-    }
+        .nav-item {
+            font-size: 0.95em;
+            padding: 8px 12px;
+        }
 
-    .nav-item {
-        font-size: 0.95em;
-        padding: 8px 12px;
-    }
-
-    .user-profile {
-        position: static;
-    }
-
+        .user-profile {
+            position: static;
+        }
     }
 </style>
 
@@ -474,6 +437,35 @@
         RecipeDB dB = new RecipeDB();
         recipes = (List<Recipes>)await dB.SearchRecipesByNameAsync(SearchRec);
         StateHasChanged();
+    }
+
+    private async Task NavigateToRecipe(int recipeId)
+    {
+        try
+        {
+            // בדיקה אם המשתמש מחובר
+            var userIdResult = await Session.GetAsync<int>("customerid");
+
+            // אם מחובר, שמור את AfterLog
+            if (userIdResult.Success && userIdResult.Value > 0)
+            {
+                await Session.SetAsync("previousPage", "/AfterLog");
+            }
+            else
+            {
+                await Session.DeleteAsync("previousPage");
+            }
+
+            await Task.Delay(100);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving previous page: {ex.Message}");
+        }
+        finally
+        {
+            navigationManager.NavigateTo($"/Recipe/{recipeId}");
+        }
     }
 
     private void GoToMakeRecipe()

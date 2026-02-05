@@ -27,12 +27,12 @@
             {
                 int currentIndex = i;
                 <div class="recipe-card-wrapper">
-                    <a href="/Recipe/@recipes[currentIndex].RecipeID" class="story-card-link">
+                    <div class="story-card-link" @onclick="@(async () => await NavigateToRecipe(recipes[currentIndex].RecipeID))">
                         <div class="story-card">
                             <img src="@(string.IsNullOrEmpty(recipes[currentIndex].ImageURL) ? "/images/defultpic.jpg" : recipes[currentIndex].ImageURL)">
                             <p>@recipes[currentIndex].Name</p>
                         </div>
-                    </a>
+                    </div>
                     <button class="edit-btn" @onclick="@(() => EditRecipe(recipes[currentIndex].RecipeID))">
                         ✏️ ערוך
                     </button>
@@ -112,6 +112,7 @@
         text-decoration: none !important;
         color: inherit;
         display: block;
+        cursor: pointer;
     }
 
     .story-card {
@@ -213,6 +214,23 @@
         int userId = userIdResult.Value;
         RecipeDB recipeDB = new RecipeDB();
         recipes = await recipeDB.GetRecipesByUserAsync(userId);
+    }
+
+    async Task NavigateToRecipe(int recipeId)
+    {
+        try
+        {
+            await Session.SetAsync("previousPage", "/MyRecipes");
+            await Task.Delay(100);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving previous page: {ex.Message}");
+        }
+        finally
+        {
+            Nav.NavigateTo($"/Recipe/{recipeId}");
+        }
     }
 
     void EditRecipe(int recipeId)

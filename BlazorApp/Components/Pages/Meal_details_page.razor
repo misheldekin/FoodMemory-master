@@ -31,7 +31,6 @@
             </div>
         }
 
-
         else
         {
             <div class="recipes-section">
@@ -58,7 +57,6 @@
 
 <style>
     @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
-
     * {
         font-family: 'Rubik', 'Assistant', sans-serif;
         box-sizing: border-box;
@@ -307,11 +305,10 @@
 
     async Task GoToRecipe(int recipeId)
     {
-        // שמירת הדף הנוכחי (ארוחה) ב-sessionStorage לפני עברה למתכון
         try
         {
             await Session.SetAsync("previousPage", $"/Meal/{MealId}");
-            await Task.Delay(100); // דיליי קטן כדי להיות בטוחים שהנתונים נשמרו
+            await Task.Delay(100);
         }
         catch (Exception ex)
         {
@@ -327,7 +324,6 @@
     {
         try
         {
-            // נסיון לקבלת הדף הקודם מ-sessionStorage
             var previousPageResult = await Session.GetAsync<string>("previousPage");
             if (previousPageResult.Success && !string.IsNullOrEmpty(previousPageResult.Value))
             {
@@ -337,7 +333,6 @@
             }
             else
             {
-                // אם אין דף קודם, חזרה לדף הארוחות שלי
                 Nav.NavigateTo("/MyMeals");
             }
         }
@@ -351,6 +346,4 @@
     {
         Nav.NavigateTo($"/EditMeal/{MealId}");
     }
-
-
 }

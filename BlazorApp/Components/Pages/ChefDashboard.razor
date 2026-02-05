@@ -1,0 +1,641 @@
+﻿@page "/ChefDashboard"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
+
+<div class="dashboard-container" dir="rtl">
+    <div class="dashboard-header">
+        <div class="header-left">
+            <h1>🍳 דשבורד הזמנות</h1>
+            <p>ניהול הזמנות מלקוחותיך</p>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-profile" @onclick="GoToProfile">📋 הפרופיל שלי</button>
+            <button class="btn btn-logout" @onclick="Logout">🚪 התנתקות</button>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="loading-message">טוען הזמנות...</div>
+    }
+    else if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="error-message">⚠️ @ErrorMessage</div>
+    }
+    else if (Orders == null || Orders.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>אין הזמנות כרגע</p>
+        </div>
+    }
+    else
+    {
+        <div class="filters-section">
+            <button class="filter-btn @(SelectedFilter == "Pending" ? "active" : "")"
+                    @onclick="@(() => FilterOrders("Pending"))">
+                ⏳ בהמתנה (@GetFilteredCount("Pending"))
+            </button>
+            <button class="filter-btn @(SelectedFilter == "Approved" ? "active" : "")"
+                    @onclick="@(() => FilterOrders("Approved"))">
+                ✅ אושרה (@GetFilteredCount("Approved"))
+            </button>
+            <button class="filter-btn @(SelectedFilter == "Rejected" ? "active" : "")"
+                    @onclick="@(() => FilterOrders("Rejected"))">
+                ❌ נדחתה (@GetFilteredCount("Rejected"))
+            </button>
+            <button class="filter-btn @(SelectedFilter == "All" ? "active" : "")"
+                    @onclick="@(() => FilterOrders("All"))">
+                📋 הכל
+            </button>
+        </div>
+
+        <div class="orders-grid">
+            @foreach (var order in FilteredOrders)
+            {
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-title">
+                            <h3>@order.MealName</h3>
+                            <span class="customer-name">מ-@order.CustomerName</span>
+                        </div>
+                        <div class="order-status">
+                            @if (order.Status == "Pending")
+                            {
+                                <span class="status-badge pending">⏳ בהמתנה</span>
+                            }
+                            else if (order.Status == "Approved")
+                            {
+                                <span class="status-badge approved">✅ אושרה</span>
+                            }
+                            else if (order.Status == "Rejected")
+                            {
+                                <span class="status-badge rejected">❌ נדחתה</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge completed">🎉 הושלמה</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="order-details">
+                        <div class="detail-item">
+                            <span class="detail-label">📅 תאריך הגשה:</span>
+                            <span class="detail-value">@order.DeliveryDate.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">📍 כתובת:</span>
+                            <span class="detail-value">@order.DeliveryAddress</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">🛒 מזהה הזמנה:</span>
+                            <span class="detail-value">#@order.OrderID</span>
+                        </div>
+                    </div>
+
+                    @if (order.Status == "Pending")
+                    {
+                        <div class="order-actions">
+                            <button class="btn btn-approve" @onclick="@(() => ApproveOrder(order.OrderID))">
+                                ✅ אשר הזמנה
+                            </button>
+                            <button class="btn btn-reject" @onclick="@(() => ShowRejectModal(order.OrderID))">
+                                ❌ דחה הזמנה
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (ShowModal)
+    {
+        <div class="modal-overlay" @onclick="CloseModal">
+            <div class="modal" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h3>⚠️ דחה הזמנה</h3>
+                    <button class="close-btn" @onclick="CloseModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p>האם בטוח שברצונך לדחות הזמנה זו?</p>
+                    <textarea @bind="RejectionReason"
+                              placeholder="הערה סיבת הדחייה (אופציונלי)"
+                              class="form-textarea" rows="4"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-reject" @onclick="ConfirmReject">דחה</button>
+                    <button class="btn btn-secondary" @onclick="CloseModal">ביטול</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+    }
+
+    .header-left h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+
+    .header-left p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+    }
+
+    .header-right {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-profile {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid white;
+    }
+
+        .btn-profile:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+    .btn-logout {
+        background: #ff6b6b;
+        color: white;
+    }
+
+        .btn-logout:hover {
+            background: #ff5252;
+        }
+
+    .loading-message, .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+
+    .error-message {
+        background: #ffebee;
+        color: #c62828;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #ef5350;
+        text-align: right;
+    }
+
+    .filters-section {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: 10px 20px;
+        background: #f0f0f0;
+        border: 2px solid transparent;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+        .filter-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+    .orders-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 25px;
+    }
+
+    .order-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+    }
+
+        .order-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px);
+        }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 15px;
+    }
+
+    .order-title h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.3rem;
+    }
+
+    .customer-name {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+    .order-details {
+        margin-bottom: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .detail-value {
+        color: #666;
+        text-align: left;
+    }
+
+    .order-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-approve {
+        background: #4caf50;
+        color: white;
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+        .btn-approve:hover {
+            background: #45a049;
+        }
+
+    .btn-reject {
+        background: #f44336;
+        color: white;
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+        .btn-reject:hover {
+            background: #da190b;
+        }
+
+    .btn-secondary {
+        background: #999;
+        color: white;
+        flex: 1;
+    }
+
+        .btn-secondary:hover {
+            background: #777;
+        }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 15px;
+    }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .modal-body {
+        margin-bottom: 20px;
+    }
+
+        .modal-body p {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+    .form-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-family: 'Rubik', 'Assistant', sans-serif;
+        direction: rtl;
+        resize: vertical;
+    }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+    }
+
+        .modal-footer .btn {
+            flex: 1;
+        }
+
+    @@media (max-width: 768px) {
+        .dashboard-header
+
+    {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .header-right {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .orders-grid {
+        grid-template-columns: 1fr;
+    }
+
+    }
+</style>
+
+@code {
+    private List<Order> Orders;
+    private List<Order> FilteredOrders;
+    private bool IsLoading = true;
+    private string ErrorMessage = "";
+    private string SelectedFilter = "Pending";
+    private bool ShowModal = false;
+    private int RejectionOrderId = 0;
+    private string RejectionReason = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var chefIdResult = await Session.GetAsync<int>("chefid");
+            if (!chefIdResult.Success)
+            {
+                Nav.NavigateTo("/ChefLogin");
+                return;
+            }
+
+            OrderDB orderDB = new OrderDB();
+            Orders = await orderDB.GetOrdersByChefAsync(chefIdResult.Value);
+
+            if (Orders != null)
+            {
+                await LoadOrderDetails();
+                FilterOrders("Pending");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"שגיאה בטעינת ההזמנות: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadOrderDetails()
+    {
+        try
+        {
+            CustomerDB customerDB = new CustomerDB();
+            RecipeDB recipeDB = new RecipeDB();
+            MealsDB mealsDB = new MealsDB();
+
+            foreach (var order in Orders)
+            {
+                var customer = await customerDB.SelectByPkAsync(order.CustomerID);
+                if (customer != null)
+                {
+                    order.CustomerName = $"{customer.Name} {customer.LastName}";
+                }
+
+                var meal = await mealsDB.SelectByPkAsync(order.MealID);
+                if (meal != null)
+                {
+                    order.MealName = meal.name;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading order details: {ex.Message}");
+        }
+    }
+
+    private void FilterOrders(string filter)
+    {
+        SelectedFilter = filter;
+        if (filter == "All")
+        {
+            FilteredOrders = Orders;
+        }
+        else
+        {
+            FilteredOrders = Orders.Where(o => o.Status == filter).ToList();
+        }
+    }
+
+    private int GetFilteredCount(string status)
+    {
+        return Orders.Count(o => o.Status == status);
+    }
+
+    async Task ApproveOrder(int orderId)
+    {
+        try
+        {
+            OrderDB orderDB = new OrderDB();
+            int result = await orderDB.UpdateStatusAsync(orderId, "Approved");
+
+            if (result > 0)
+            {
+                var order = Orders.FirstOrDefault(o => o.OrderID == orderId);
+                if (order != null)
+                {
+                    order.Status = "Approved";
+                    FilterOrders(SelectedFilter);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"שגיאה באישור הזמנה: {ex.Message}";
+        }
+    }
+
+    private void ShowRejectModal(int orderId)
+    {
+        RejectionOrderId = orderId;
+        RejectionReason = "";
+        ShowModal = true;
+    }
+
+    private void CloseModal()
+    {
+        ShowModal = false;
+        RejectionOrderId = 0;
+        RejectionReason = "";
+    }
+
+    async Task ConfirmReject()
+    {
+        try
+        {
+            OrderDB orderDB = new OrderDB();
+            int result = await orderDB.UpdateStatusAsync(RejectionOrderId, "Rejected");
+
+            if (result > 0)
+            {
+                var order = Orders.FirstOrDefault(o => o.OrderID == RejectionOrderId);
+                if (order != null)
+                {
+                    order.Status = "Rejected";
+                    FilterOrders(SelectedFilter);
+                }
+                CloseModal();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"שגיאה בדחיית הזמנה: {ex.Message}";
+        }
+    }
+
+    void GoToProfile()
+    {
+        Nav.NavigateTo("/ChefProfile");
+    }
+
+    async Task Logout()
+    {
+        await Session.DeleteAsync("chefid");
+        Nav.NavigateTo("/ChefLogin");
+    }
+}

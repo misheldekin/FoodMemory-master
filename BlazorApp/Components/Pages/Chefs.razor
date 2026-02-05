@@ -1,0 +1,313 @@
+﻿@page "/Chefs"
+@using Models
+@using DBL
+@inject NavigationManager navigationManager
+
+
+<div class="chefs-page">
+    <header class="header">
+        <div class="header-content">
+            <button class="back-btn" @onclick="GoBack">← חזרה</button>
+            <h1>👨‍🍳 השפים המומלצים שלנו</h1>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <section class="chefs-container">
+            <div class="chefs-grid">
+                @if (chefs == null)
+                {
+                    <p>טוען שפים...</p>
+                }
+                else if (chefs.Count == 0)
+                {
+                    <p>לא נמצאו שפים</p>
+                }
+                else
+                {
+                    @for (int i = 0; i < chefs.Count; i++)
+                    {
+                        <div class="chef-card">
+                            <div class="chef-image-container">
+                                <img src="@chefs[i].ProfileImage"
+                                     alt="שף @chefs[i].FirstName"
+                                     class="chef-image" />
+                            </div>
+
+                            <div class="chef-info">
+                                <h2>
+                                    @chefs[i].FirstName @chefs[i].LastName
+                                </h2>
+
+                                <p class="chef-specialty">
+                                    👨‍🍳 @chefs[i].YearsOfExperience שנות ניסיון
+                                </p>
+
+                                <p class="chef-description">
+                                    @chefs[i].Bio
+                                </p>
+
+                                <div class="chef-rating">
+                                    ⭐ @chefs[i].Rating / 5
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+
+
+        </section>
+
+        <section class="chefs-info-section">
+            <h2>למה לבחור בשפים שלנו?</h2>
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="icon">📚</div>
+                    <h3>מתכונים מוכחים</h3>
+                    <p>כל המתכונים עברו בדיקה קפדנית ואושרו על ידי מומחים בתחום</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">👨‍🍳</div>
+                    <h3>שפים בעלי ניסיון</h3>
+                    <p>שפים עם ניסיון של עשרות שנים בתחום הבישול</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">❤️</div>
+                    <h3>בעשוק לב ונשמה</h3>
+                    <p>כל מתכון בנוי בעשוק לב לשימור מסורות משפחתיות</p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Rubik', 'Assistant', sans-serif;
+        box-sizing: border-box;
+    }
+
+    .chefs-page {
+        min-height: 100vh;
+        background-color: #f7f3ed;
+        direction: rtl;
+        text-align: right;
+    }
+
+    .header {
+        background-color: white;
+        padding: 20px 40px;
+        border-bottom: 1px solid #eee;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .back-btn {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        }
+
+    .header h1 {
+        margin: 0;
+        color: #414833;
+        font-size: 2em;
+        flex-grow: 1;
+        text-align: center;
+    }
+
+    .content-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .chefs-container {
+        margin-bottom: 60px;
+    }
+
+    .chefs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .chef-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+        .chef-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            border-color: #737A5D;
+        }
+
+    .chef-image-container {
+        width: 100%;
+        height: 250px;
+        overflow: hidden;
+    }
+
+    .chef-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .chef-card:hover .chef-image {
+        transform: scale(1.05);
+    }
+
+    .chef-info {
+        padding: 25px;
+    }
+
+        .chef-info h2 {
+            margin: 0 0 10px 0;
+            color: #414833;
+            font-size: 1.6em;
+        }
+
+    .chef-specialty {
+        margin: 5px 0;
+        color: #737A5D;
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+
+    .chef-description {
+        margin: 15px 0;
+        color: #666;
+        line-height: 1.6;
+        font-size: 0.95em;
+    }
+
+    .chef-rating {
+        margin-top: 15px;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        color: #414833;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .chefs-info-section {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+
+        .chefs-info-section h2 {
+            text-align: center;
+            color: #414833;
+            font-size: 2em;
+            margin-bottom: 40px;
+        }
+
+    .info-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+    }
+
+    .info-card {
+        text-align: center;
+        padding: 25px;
+        background: #f7f3ed;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+    }
+
+        .info-card:hover {
+            background: #ebe3d2;
+            transform: translateY(-5px);
+        }
+
+        .info-card .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .info-card h3 {
+            color: #414833;
+            font-size: 1.3em;
+            margin: 0 0 10px 0;
+        }
+
+        .info-card p {
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+    @@media (max-width: 768px) {
+        .header-content {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+        }
+
+        .chefs-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chefs-info-section {
+            padding: 25px;
+        }
+
+            .chefs-info-section h2 {
+                font-size: 1.5em;
+            }
+    }
+</style>
+
+@code {
+
+    private List<Chef> chefs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ChefDB chefDB = new ChefDB();
+        chefs = await chefDB.GetAllAsync();
+    }
+
+    private void GoBack()
+    {
+        navigationManager.NavigateTo("/AfterLog");
+    }
+}
+
