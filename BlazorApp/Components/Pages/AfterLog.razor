@@ -85,6 +85,37 @@
             }
         </section>
 
+        <!-- Chefs Section -->
+        <section class="chefs-featured-section">
+            <h2>👨‍🍳 שפים מומלצים</h2>
+
+            @if (chefs == null || chefs.Count == 0)
+            {
+                <p>לא נמצאו שפים.</p>
+            }
+            else
+            {
+                @for (int i = 0; i < chefs.Count; i += 6)
+                {
+                    <div class="chefs-grid">
+                        @for (int j = i; j < i + 6 && j < chefs.Count; j++)
+                        {
+                            int currentIndex = j;
+                            <div class="chef-card-link" @onclick="@(() => GoToChefs())">
+                                <div class="chef-card">
+                                    <img src="@(string.IsNullOrWhiteSpace(chefs[currentIndex].ProfileImage) ? "/images/defultpic.jpg" : chefs[currentIndex].ProfileImage)" alt="@chefs[currentIndex].FirstName">
+                                    <div class="chef-info-card">
+                                        <h4>@chefs[currentIndex].FirstName @chefs[currentIndex].LastName</h4>
+                                        <p class="chef-experience">👨‍🍳 @chefs[currentIndex].YearsOfExperience שנות ניסיון</p>
+                                        <div class="chef-rating-card">⭐ @chefs[currentIndex].Rating.ToString("F1")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </section>
 
     </main>
 </div>
@@ -276,6 +307,14 @@
         }
     }
 
+    /* Stories Section */
+    .stories-section h2 {
+        text-align: center;
+        margin: 40px 0 20px 0;
+        color: #414833;
+        font-size: 2em;
+    }
+
     .stories-list {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -323,6 +362,86 @@
             text-overflow: ellipsis;
         }
 
+    /* Chefs Featured Section */
+    .chefs-featured-section {
+        margin-top: 60px;
+        padding: 40px 0;
+        border-top: 2px solid #eee;
+    }
+
+        .chefs-featured-section h2 {
+            text-align: center;
+            margin: 0 0 30px 0;
+            color: #414833;
+            font-size: 2em;
+        }
+
+    .chefs-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 20px;
+        padding: 20px 0;
+        margin-bottom: 20px;
+    }
+
+    .chef-card-link {
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .chef-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+        .chef-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border-color: #6a994e;
+        }
+
+        .chef-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+    .chef-info-card {
+        padding: 15px;
+        text-align: center;
+    }
+
+        .chef-info-card h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 1.1em;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    .chef-experience {
+        margin: 5px 0;
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .chef-rating-card {
+        margin-top: 8px;
+        padding: 6px 10px;
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        color: #333;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+
     .logout-container {
         position: absolute;
         left: 0;
@@ -367,10 +486,18 @@
         .stories-list {
             grid-template-columns: repeat(3, 1fr);
         }
+
+        .chefs-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
     @@media (max-width: 600px) {
         .stories-list {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .chefs-grid {
             grid-template-columns: repeat(2, 1fr);
         }
     }
@@ -408,6 +535,7 @@
     private string CustomerName = "";
     private string profileImage = "/images/defultpic.jpg";
     private List<Recipes> recipes;
+    private List<Chef> chefs;
     private string SearchRec = "";
 
     protected override async Task OnInitializedAsync()
@@ -428,8 +556,13 @@
             profileImage = resultProfileImage.Value;
         }
 
+        // Load recipes
         RecipeDB dB = new RecipeDB();
         recipes = await dB.GetAllAsync();
+
+        // Load chefs
+        ChefDB chefDB = new ChefDB();
+        chefs = await chefDB.GetAllAsync();
     }
 
     private async Task SearchBtn()
@@ -471,6 +604,11 @@
     private void GoToMakeRecipe()
     {
         navigationManager.NavigateTo("/makeRecipe");
+    }
+
+    private void GoToChefs()
+    {
+        navigationManager.NavigateTo("/Chefs");
     }
 
     private void GoToProfile()

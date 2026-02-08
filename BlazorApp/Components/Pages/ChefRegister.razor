@@ -2,6 +2,7 @@
 @using Models
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Forms
 @inject ProtectedSessionStorage Session
 @inject NavigationManager Nav
 
@@ -27,6 +28,31 @@
         </div>
 
         <div class="form-grid">
+            <!-- תמונת פרופיל -->
+            <div class="input-box full profile-image-box">
+                <label>📷 תמונת פרופיל (אופציונלי)</label>
+                <div class="image-upload-section">
+                    <div class="image-preview-container">
+                        @if (!string.IsNullOrEmpty(ProfileImageBase64))
+                        {
+                            <img src="@ProfileImageBase64" alt="תצוגה מקדימה" class="profile-preview-img" />
+                        }
+                        else
+                        {
+                            <div class="image-placeholder">
+                                <span class="placeholder-icon">📸</span>
+                                <p>בחר תמונה</p>
+                            </div>
+                        }
+                    </div>
+                    <InputFile OnChange="HandleProfileImageUpload" accept="image/*" class="file-input" />
+                    @if (!string.IsNullOrEmpty(ImageMessage))
+                    {
+                        <p class="image-message @ImageMessageClass">@ImageMessage</p>
+                    }
+                </div>
+            </div>
+
             <div class="input-box">
                 <label>שם פרטי</label>
                 <input type="text" @bind="FirstName" placeholder="" />
@@ -73,7 +99,6 @@
             }
             else
             {
-
                 <span>פתח את המטבח שלי ✨</span>
             }
         </button>
@@ -97,7 +122,7 @@
         min-height: 100vh;
         background: var(--warm-cream);
         background-image: radial-gradient(#e5e0d8 1px, transparent 1px);
-        background-size: 20px 20px; /* רקע נקודות עדין כמו מחברת מתכונים */
+        background-size: 20px 20px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -151,7 +176,10 @@
         font-size: 1rem;
     }
 
-    /* Form Grid */
+    .messages-area {
+        margin-bottom: 20px;
+    }
+
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -192,6 +220,87 @@
             box-shadow: 0 0 0 4px rgba(125, 142, 123, 0.1);
         }
 
+    /* Profile Image Upload */
+    .profile-image-box {
+        background: #f9f7f3;
+        padding: 20px !important;
+        border-radius: 15px;
+        border: 2px dashed #eee;
+    }
+
+    .image-upload-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .image-preview-container {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: white;
+        border: 3px solid var(--sage-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(125, 142, 123, 0.2);
+    }
+
+    .profile-preview-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .image-placeholder {
+        text-align: center;
+        color: #999;
+    }
+
+    .placeholder-icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+        .placeholder-icon + p {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+    .file-input {
+        padding: 10px 15px;
+        border: 2px solid var(--sage-green);
+        border-radius: 12px;
+        background: white;
+        cursor: pointer;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .image-message {
+        font-size: 0.85rem;
+        text-align: center;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin: 0;
+    }
+
+        .image-message.success {
+            background: #f0fff4;
+            color: #276749;
+            border: 1px solid #9ae6b4;
+        }
+
+        .image-message.error {
+            background: #fff5f5;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+
     .range-wrapper {
         position: relative;
         display: flex;
@@ -205,7 +314,6 @@
         font-size: 0.8rem;
     }
 
-    /* Button */
     .submit-chef-btn {
         width: 100%;
         padding: 18px;
@@ -230,7 +338,6 @@
             cursor: not-allowed;
         }
 
-    /* Alerts */
     .alert {
         padding: 12px;
         border-radius: 10px;
@@ -265,7 +372,6 @@
             margin-right: 5px;
         }
 
-    /* Loader */
     .loader {
         width: 20px;
         height: 20px;
@@ -298,11 +404,15 @@
         .register-card-aesthetic {
             padding: 30px 20px;
         }
+
+        .image-preview-container {
+            width: 120px;
+            height: 120px;
+        }
     }
 </style>
 
 @code {
-    // השארתי את הלוגיקה שלך בדיוק כפי שהייתה כי היא עובדת מעולה
     private string FirstName = "";
     private string LastName = "";
     private string Email = "";
@@ -310,8 +420,11 @@
     private string PhoneNumber = "";
     private int YearsOfExperience = 0;
     private string Bio = "";
+    private string ProfileImageBase64 = "";
     private string ErrorMessage = "";
     private string SuccessMessage = "";
+    private string ImageMessage = "";
+    private string ImageMessageClass = "";
     private bool IsLoading = false;
 
     async Task Register()
@@ -346,7 +459,7 @@
                 YearsOfExperience = YearsOfExperience,
                 Bio = Bio,
                 Rating = 0,
-                ProfileImage = ""
+                ProfileImage = string.IsNullOrEmpty(ProfileImageBase64) ? "" : ProfileImageBase64
             };
 
             ChefDB chefDB = new ChefDB();
@@ -370,6 +483,50 @@
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    async Task HandleProfileImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            ImageMessage = "";
+            ImageMessageClass = "";
+
+            var file = e.File;
+            long maxFileSize = 8 * 1024 * 1024; // 2MB
+
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                ImageMessage = "אנא בחר קובץ תמונה בלבד";
+                ImageMessageClass = "error";
+                return;
+            }
+
+            if (file.Size > maxFileSize)
+            {
+                ImageMessage = "גודל הקובץ גדול מדי (מקסימום 2MB)";
+                ImageMessageClass = "error";
+                return;
+            }
+
+            using (var stream = file.OpenReadStream(maxFileSize))
+            {
+                using (var memoryStream = new System.IO.MemoryStream())
+                {
+                    await stream.CopyToAsync(memoryStream);
+                    byte[] buffer = memoryStream.ToArray();
+                    ProfileImageBase64 = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+                }
+            }
+
+            ImageMessage = "✅ תמונה נטענה בהצלחה!";
+            ImageMessageClass = "success";
+        }
+        catch (Exception ex)
+        {
+            ImageMessage = $"שגיאה בעלאת התמונה: {ex.Message}";
+            ImageMessageClass = "error";
         }
     }
 }
