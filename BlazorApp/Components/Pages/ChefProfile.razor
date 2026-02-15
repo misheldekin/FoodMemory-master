@@ -2,6 +2,7 @@
 @using Models
 @using DBL
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Forms
 @inject ProtectedSessionStorage Session
 @inject NavigationManager Nav
 
@@ -32,6 +33,26 @@
             {
                 <div class="success-message">✅ @SuccessMessage</div>
             }
+
+            <!-- סעיף תמונת פרופיל -->
+            <div class="profile-section">
+                <h3>📸 תמונת פרופיל</h3>
+
+                <div class="profile-image-container">
+                    <img src="@(string.IsNullOrEmpty(Chef.ProfileImage) ? "/images/defultpic.jpg" : Chef.ProfileImage)"
+                         alt="תמונת פרופיל"
+                         class="profile-image" />
+                </div>
+
+                <div class="image-upload-section">
+                    <InputFile OnChange="HandleProfileImageUpload" accept="image/*" class="file-input" />
+                    <p class="upload-note">גודל מקסימלי: 8MB</p>
+                    @if (!string.IsNullOrEmpty(ImageMessage))
+                    {
+                        <p class="image-message @ImageMessageClass">@ImageMessage</p>
+                    }
+                </div>
+            </div>
 
             <div class="profile-section">
                 <h3>🔧 פרטים אישיים</h3>
@@ -199,6 +220,70 @@
             padding-bottom: 10px;
         }
 
+    /* סגנונות תמונת פרופיל */
+    .profile-image-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .profile-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #667eea;
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .image-upload-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background: #f5f7ff;
+        border-radius: 12px;
+        border: 2px dashed #667eea;
+    }
+
+    .file-input {
+        padding: 10px 15px;
+        border: 2px solid #667eea;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        font-weight: 500;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .upload-note {
+        font-size: 0.85rem;
+        color: #999;
+        margin: 0;
+    }
+
+    .image-message {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin: 0;
+        text-align: center;
+    }
+
+        .image-message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+
+        .image-message.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+        }
+
+    /* باقي السگنونات */
     .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -360,20 +445,17 @@
         }
 
     @@media (max-width: 768px) {
-        .profile-card
+        .profile-card {
+            padding: 20px;
+        }
 
-    {
-        padding: 20px;
-    }
+        .form-row {
+            grid-template-columns: 1fr;
+        }
 
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-
-    .button-group {
-        flex-direction: column;
-    }
-
+        .button-group {
+            flex-direction: column;
+        }
     }
 </style>
 
@@ -385,9 +467,12 @@
     private string ErrorMessage = "";
     private string SuccessMessage = "";
     private string PasswordErrorMessage = "";
+    private string ImageMessage = "";
+    private string ImageMessageClass = "";
     private string OldPassword = "";
     private string NewPassword = "";
     private string ConfirmPassword = "";
+    private long maxFileSize = 8 * 1024 * 1024; // 8MB
 
     protected override async Task OnInitializedAsync()
     {
@@ -415,6 +500,69 @@
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    async Task HandleProfileImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            ImageMessage = "";
+            ImageMessageClass = "";
+
+            var file = e.File;
+
+            // בדיקת סוג הקובץ
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                ImageMessage = "אנא בחר קובץ תמונה בלבד";
+                ImageMessageClass = "error";
+                return;
+            }
+
+            // בדיקת גודל הקובץ
+            if (file.Size > maxFileSize)
+            {
+                ImageMessage = "גודל הקובץ גדול מדי (מקסימום 8MB)";
+                ImageMessageClass = "error";
+                return;
+            }
+
+            // יצירת שם קובץ אקראי
+            string fileName = Path.ChangeExtension(Path.GetRandomFileName(),
+                Path.GetExtension(file.Name));
+
+            // קריאת הקובץ לזיכרון וחיסכון
+            using (var stream = file.OpenReadStream(maxFileSize))
+            {
+                using (var memoryStream = new System.IO.MemoryStream())
+                {
+                    await stream.CopyToAsync(memoryStream);
+                    byte[] buffer = memoryStream.ToArray();
+
+                    // שמירת הקובץ בשרת
+                    string imagesPath = "wwwroot/images";
+                    if (!Directory.Exists(imagesPath))
+                    {
+                        Directory.CreateDirectory(imagesPath);
+                    }
+
+                    string filePath = Path.Combine(imagesPath, fileName);
+                    await System.IO.File.WriteAllBytesAsync(filePath, buffer);
+
+                    // עדכון ה-URL בפרופיל
+                    string imageUrl = $"/images/{fileName}";
+                    Chef.ProfileImage = imageUrl;
+
+                    ImageMessage = "✅ תמונה נטענה בהצלחה!";
+                    ImageMessageClass = "success";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ImageMessage = $"שגיאה בעלאת התמונה: {ex.Message}";
+            ImageMessageClass = "error";
         }
     }
 

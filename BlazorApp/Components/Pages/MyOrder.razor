@@ -1,5 +1,503 @@
-﻿<h3>MyOrder</h3>
+﻿@page "/MyOrders"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+
+<div class="page-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">← חזרה</button>
+
+    <h2>ההזמנות שלי 📦</h2>
+
+    @if (Orders == null)
+    {
+        <p class="status">טוען הזמנות...</p>
+    }
+    else if (Orders.Count == 0)
+    {
+        <div class="empty-box">
+            <div class="emoji">📭</div>
+            <p>עדיין לא הזמנת אצל שף</p>
+            <button class="btn primary" @onclick="GoToCreateOrder">➕ צור הזמנה חדשה</button>
+        </div>
+    }
+    else
+    {
+        <div class="orders-section">
+            <button class="btn primary" @onclick="GoToCreateOrder">➕ הזמנה חדשה</button>
+
+            <div class="filter-buttons">
+                <button class="filter-btn @(SelectedFilter == "All" ? "active" : "")"
+                        @onclick="@(() => FilterOrders("All"))">
+                    הכל (@Orders.Count)
+                </button>
+                <button class="filter-btn @(SelectedFilter == "Pending" ? "active" : "")"
+                        @onclick="@(() => FilterOrders("Pending"))">
+                    ⏳ ממתינה (@GetCountByStatus("Pending"))
+                </button>
+                <button class="filter-btn @(SelectedFilter == "Approved" ? "active" : "")"
+                        @onclick="@(() => FilterOrders("Approved"))">
+                    ✅ אושרה (@GetCountByStatus("Approved"))
+                </button>
+                <button class="filter-btn @(SelectedFilter == "Rejected" ? "active" : "")"
+                        @onclick="@(() => FilterOrders("Rejected"))">
+                    ❌ נדחתה (@GetCountByStatus("Rejected"))
+                </button>
+                <button class="filter-btn @(SelectedFilter == "Completed" ? "active" : "")"
+                        @onclick="@(() => FilterOrders("Completed"))">
+                    🎉 הושלמה (@GetCountByStatus("Completed"))
+                </button>
+            </div>
+
+            <div class="orders-grid">
+                @for (int i = 0; i < FilteredOrders.Count; i++)
+                {
+                    int index = i;
+                    Order order = FilteredOrders[index];
+
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div class="order-info">
+                                <h3>@order.CustomerName</h3>
+                                <p class="meal-name">🍽️ @order.MealName</p>
+                            </div>
+                            <div class="order-status">
+                                <span class="status-badge @order.Status.ToLower()">
+                                    @GetStatusEmoji(order.Status) @GetStatusText(order.Status)
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="order-details">
+                            <div class="detail-row">
+                                <span class="label">📅 תאריך:</span>
+                                <span class="value">@order.DeliveryDate.ToString("dd/MM/yyyy")</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">🕐 שעה:</span>
+                                <span class="value">@order.DeliveryDate.ToString("HH:mm")</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">📍 כתובת:</span>
+                                <span class="value">@order.DeliveryAddress</span>
+                            </div>
+                        </div>
+
+                        <div class="order-actions">
+                            <button class="btn-view" @onclick="@(() => ViewOrderDetails(order.OrderID))">
+                                👁️ צפה בפרטים
+                            </button>
+
+                            @if (order.Status == "Pending")
+                            {
+                                <button class="btn-cancel" @onclick="@(() => CancelOrder(order.OrderID))">
+                                    ❌ בטל הזמנה
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Rubik', 'Assistant', sans-serif;
+        box-sizing: border-box;
+    }
+
+    .page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        direction: rtl;
+        position: relative;
+    }
+
+    .back-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 50;
+    }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    h2 {
+        text-align: center;
+        margin: 40px 0 30px 0;
+        padding-top: 20px;
+        color: #414833;
+        font-weight: 700;
+    }
+
+    .status {
+        text-align: center;
+        font-size: 1.2rem;
+        color: #737A5D;
+        margin-top: 60px;
+    }
+
+    .empty-box {
+        background: #f3efe7;
+        border-radius: 20px;
+        padding: 60px 30px;
+        max-width: 420px;
+        margin: 80px auto;
+        text-align: center;
+    }
+
+        .empty-box .emoji {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-box p {
+            font-size: 1.2rem;
+            color: #414833;
+            margin-bottom: 25px;
+        }
+
+    .orders-section {
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+            color: white;
+            margin-bottom: 25px;
+        }
+
+            .btn.primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(65, 72, 51, 0.3);
+            }
+
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        background: #f0f0f0;
+        border: 2px solid transparent;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+        .filter-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+            color: white;
+        }
+
+    .orders-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 25px;
+    }
+
+    .order-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+        .order-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px);
+            border-color: #737A5D;
+        }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .order-info h3 {
+        margin: 0;
+        color: #414833;
+        font-size: 1.3rem;
+    }
+
+    .meal-name {
+        color: #737A5D;
+        font-size: 0.95rem;
+        margin: 5px 0 0 0;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+    .order-details {
+        margin-bottom: 20px;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 0.95rem;
+    }
+
+    .label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .value {
+        color: #666;
+    }
+
+    .order-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .btn-view, .btn-cancel {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .btn-view {
+        background: #667eea;
+        color: white;
+    }
+
+        .btn-view:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+    .btn-cancel {
+        background: #e74c3c;
+        color: white;
+    }
+
+        .btn-cancel:hover {
+            background: #c0392b;
+        }
+
+    @@media (max-width: 768px) {
+        .back-btn {
+            position: static;
+            display: block;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        .orders-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-buttons {
+            flex-direction: column;
+        }
+
+            .filter-buttons .filter-btn {
+                width: 100%;
+            }
+    }
+</style>
 
 @code {
+    List<Order> Orders;
+    List<Order> FilteredOrders;
+    string SelectedFilter = "All";
+    int CurrentUserId;
 
+    protected override async Task OnInitializedAsync()
+    {
+        ProtectedBrowserStorageResult<int> userIdResult = await Session.GetAsync<int>("customerid");
+        if (!userIdResult.Success)
+        {
+            Nav.NavigateTo("/Login");
+            return;
+        }
+
+        CurrentUserId = userIdResult.Value;
+        await LoadOrders();
+    }
+
+    async Task LoadOrders()
+    {
+        OrderDB orderDB = new OrderDB();
+        Orders = await orderDB.GetOrdersByCustomerAsync(CurrentUserId);
+
+        if (Orders == null)
+        {
+            Orders = new List<Order>();
+        }
+
+        FilterOrders("All");
+    }
+
+    void FilterOrders(string status)
+    {
+        SelectedFilter = status;
+
+        if (status == "All")
+        {
+            FilteredOrders = new List<Order>();
+            for (int i = 0; i < Orders.Count; i++)
+            {
+                FilteredOrders.Add(Orders[i]);
+            }
+        }
+        else
+        {
+            FilteredOrders = new List<Order>();
+            for (int i = 0; i < Orders.Count; i++)
+            {
+                if (Orders[i].Status == status)
+                {
+                    FilteredOrders.Add(Orders[i]);
+                }
+            }
+        }
+    }
+
+    int GetCountByStatus(string status)
+    {
+        int count = 0;
+        for (int i = 0; i < Orders.Count; i++)
+        {
+            if (Orders[i].Status == status)
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    string GetStatusEmoji(string status)
+    {
+        return status switch
+        {
+            "Pending" => "⏳",
+            "Approved" => "✅",
+            "Rejected" => "❌",
+            "Completed" => "🎉",
+            _ => "❓"
+        };
+    }
+
+    string GetStatusText(string status)
+    {
+        return status switch
+        {
+            "Pending" => "ממתינה לאישור",
+            "Approved" => "אושרה",
+            "Rejected" => "נדחתה",
+            "Completed" => "הושלמה",
+            _ => "לא ידוע"
+        };
+    }
+
+    void ViewOrderDetails(int orderId)
+    {
+        Nav.NavigateTo($"/OrderDetails/{orderId}");
+    }
+
+    async Task CancelOrder(int orderId)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "האם בטוח שברצונך לבטל את ההזמנה?");
+
+        if (confirmed)
+        {
+            OrderDB orderDB = new OrderDB();
+            int result = await orderDB.UpdateStatusAsync(orderId, "Cancelled");
+
+            if (result > 0)
+            {
+                await LoadOrders();
+            }
+        }
+    }
+
+    void GoToCreateOrder()
+    {
+        Nav.NavigateTo("/CreateOrder");
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/AfterLog");
+    }
 }
+

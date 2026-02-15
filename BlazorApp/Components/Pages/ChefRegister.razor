@@ -459,7 +459,7 @@
                 YearsOfExperience = YearsOfExperience,
                 Bio = Bio,
                 Rating = 0,
-                ProfileImage = string.IsNullOrEmpty(ProfileImageBase64) ? "" : ProfileImageBase64
+                ProfileImage = ProfileImageBase64  // עכשיו זה רק URL
             };
 
             ChefDB chefDB = new ChefDB();
@@ -491,10 +491,8 @@
         try
         {
             ImageMessage = "";
-            ImageMessageClass = "";
-
             var file = e.File;
-            long maxFileSize = 8 * 1024 * 1024; // 2MB
+            long maxFileSize = 8 * 1024 * 1024; // 8MB
 
             if (!file.ContentType.StartsWith("image/"))
             {
@@ -505,18 +503,29 @@
 
             if (file.Size > maxFileSize)
             {
-                ImageMessage = "גודל הקובץ גדול מדי (מקסימום 2MB)";
+                ImageMessage = "גודל הקובץ גדול מדי (מקסימום 8MB)";
                 ImageMessageClass = "error";
                 return;
             }
 
+            // יצור שם קובץ אקראי
+            string fileName = Path.ChangeExtension(Path.GetRandomFileName(),
+                Path.GetExtension(file.Name));
+
+            // שמור בתיקיית images
             using (var stream = file.OpenReadStream(maxFileSize))
             {
                 using (var memoryStream = new System.IO.MemoryStream())
                 {
                     await stream.CopyToAsync(memoryStream);
                     byte[] buffer = memoryStream.ToArray();
-                    ProfileImageBase64 = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+
+                    // שמור קובץ בשרת (תצטרך לעדכן את הנתיב לפי הסביבה שלך)
+                    string imagePath = Path.Combine("wwwroot/images", fileName);
+                    await System.IO.File.WriteAllBytesAsync(imagePath, buffer);
+
+                    // שמור רק את ה-URL בבסיס הנתונים
+                    ProfileImageBase64 = $"/images/{fileName}";
                 }
             }
 
