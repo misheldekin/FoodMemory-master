@@ -13,6 +13,7 @@ namespace Models
         public string DeliveryAddress { get; set; }
         public string Status { get; set; } // "Pending", "Approved", "Rejected", "Completed"
         public string CustomerName { get; set; }
+        public string ChefName { get; set; }
         public string MealName { get; set; }
 
         public Order() { }

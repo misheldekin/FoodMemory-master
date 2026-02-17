@@ -1,0 +1,303 @@
+﻿@page "/OrderDetails/{OrderId:int}"
+@using Models
+@using DBL
+@inject NavigationManager Nav
+
+<div class="bistro-container" dir="rtl">
+
+    <div class="order-sheet">
+        <div class="nav-header">
+            <button class="text-back-btn" @onclick="GoBack">← חזרה להזמנות שלי</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="bistro-loader">
+                <div class="loader-icon">🥘</div>
+                <p>עורכים את השולחן...</p>
+            </div>
+        }
+        else if (order == null)
+        {
+            <div class="bistro-error">
+                <h3>ההזמנה לא נמצאה במטבח שלנו</h3>
+                <button class="action-btn" @onclick="GoBack">נסו שוב</button>
+            </div>
+        }
+        else
+        {
+            <header class="sheet-header">
+                <span class="order-tag">פרטי הזמנה #@order.OrderID</span>
+                <h1>החוויה הקולינרית שלך</h1>
+                <div class="status-line">
+                    <span class="dot"></span> @order.Status
+                </div>
+            </header>
+
+            <div class="details-list">
+                <div class="list-item">
+                    <div class="item-icon">🍽️</div>
+                    <div class="item-info">
+                        <label>הארוחה שנבחרה</label>
+                        <p>@order.MealName</p>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="item-icon">👨‍🍳</div>
+                    <div class="item-info">
+                        <label>השף המארח</label>
+                        <p>@order.ChefName</p>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="item-icon">📅</div>
+                    <div class="item-info">
+                        <label>מועד האירוח / משלוח</label>
+                        <p>@order.DeliveryDate.ToString("dd/MM/yyyy") בשעה @order.DeliveryDate.ToString("HH:mm")</p>
+                    </div>
+                </div>
+
+                <div class="list-item">
+                    <div class="item-icon">📍</div>
+                    <div class="item-info">
+                        <label>כתובת היעד</label>
+                        <p>@order.DeliveryAddress</p>
+                    </div>
+                </div>
+
+                <div class="list-item last">
+                    <div class="item-icon">📝</div>
+                    <div class="item-info">
+                        <label>בוצע במערכת</label>
+                        <p>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="sheet-footer">
+                <div class="divider"></div>
+                <p>תודה שבחרת להתארח אצלנו</p>
+                <div class="footer-logo">Bistro App</div>
+            </footer>
+        }
+    </div>
+</div>
+
+<style>
+    /* פלטת צבעים אחידה - גווני כתום עמוק וקרם */
+    :root {
+        --bistro-orange: #e67e22;
+        --bistro-dark: #2c3e50;
+        --bistro-bg: #fdfaf6;
+        --bistro-border: #eee3d5;
+    }
+
+    .bistro-container {
+        min-height: 100vh;
+        background-color: var(--bistro-bg);
+        padding: 40px 15px;
+        font-family: 'Assistant', sans-serif;
+    }
+
+    /* דף ההזמנה */
+    .order-sheet {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+        padding: 30px;
+        border: 1px solid var(--bistro-border);
+    }
+
+    .nav-header {
+        margin-bottom: 20px;
+    }
+
+    .text-back-btn {
+        background: none;
+        border: none;
+        color: var(--bistro-orange);
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.95rem;
+    }
+
+    /* כותרת */
+    .sheet-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .order-tag {
+        font-size: 0.8rem;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .sheet-header h1 {
+        margin: 10px 0;
+        font-size: 1.8rem;
+        color: var(--bistro-dark);
+        font-weight: 800;
+    }
+
+    .status-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--bistro-orange);
+        font-weight: bold;
+        background: #fff5eb;
+        padding: 4px 15px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--bistro-orange);
+        border-radius: 50%;
+    }
+
+    /* רשימת הטור - הכל מסודר אחד מתחת לשני */
+    .details-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .list-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 20px 0;
+        border-bottom: 1px solid #f9f9f9;
+    }
+
+        .list-item.last {
+            border-bottom: none;
+        }
+
+    .item-icon {
+        font-size: 1.5rem;
+        background: #fdfaf6;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: var(--bistro-orange);
+    }
+
+    .item-info label {
+        display: block;
+        font-size: 0.85rem;
+        color: #aaa;
+        margin-bottom: 2px;
+    }
+
+    .item-info p {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--bistro-dark);
+        font-weight: 600;
+    }
+
+    /* פוטר */
+    .sheet-footer {
+        margin-top: 30px;
+        text-align: center;
+        color: #ccc;
+    }
+
+    .divider {
+        height: 1px;
+        background: radial-gradient(circle, #eee 0%, transparent 100%);
+        margin-bottom: 20px;
+    }
+
+    .footer-logo {
+        font-family: 'serif';
+        font-style: italic;
+        margin-top: 10px;
+        font-size: 1.2rem;
+        color: #eee;
+    }
+
+    /* אנימציית טעינה */
+    .bistro-loader {
+        text-align: center;
+        padding: 60px;
+    }
+
+    .loader-icon {
+        font-size: 3rem;
+        animation: rotate 2s linear infinite;
+    }
+
+    @@keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int OrderId { get; set; }
+
+    private Order order;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        OrderDB orderDB = new OrderDB();
+        order = await orderDB.SelectByPkAsync(OrderId);
+
+        if (order != null)
+        {
+            // שליפת שף
+            ChefDB chefDB = new ChefDB();
+            Chef chef = await chefDB.SelectByPkAsync(order.ChefID);
+
+            if (chef != null)
+            {
+                order.ChefName = chef.FirstName + " " + chef.LastName;
+            }
+            else
+            {
+                order.ChefName = "לא נמצא";
+            }
+
+            MealsDB mealsDB = new MealsDB();
+            Meals meal = await mealsDB.SelectByPkAsync(order.MealID);
+
+            if (meal != null)
+            {
+                order.MealName = meal.name;
+            }
+            else
+            {
+                order.MealName = "לא נמצא";
+            }
+        }
+
+        isLoading = false;
+    }
+
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/MyOrders");
+    }
+}

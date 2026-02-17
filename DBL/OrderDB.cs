@@ -28,8 +28,8 @@ namespace DBL
             order.MealID = int.Parse(row[3].ToString());
             order.OrderDate = DateTime.Parse(row[4].ToString());
             order.DeliveryDate = DateTime.Parse(row[5].ToString());
-            order.DeliveryAddress = row[6].ToString();
-            order.Status = row[7].ToString();
+            order.Status = row[6].ToString();
+            order.DeliveryAddress = row[7].ToString();
             return order;
         }
 
@@ -47,8 +47,8 @@ namespace DBL
                 { "meal_id", order.MealID },
                 { "order_date", order.OrderDate },
                 { "delivery_date", order.DeliveryDate },
-                { "delivery_address", order.DeliveryAddress },
-                { "status", order.Status }
+                { "status", order.Status },
+                { "address", order.DeliveryAddress },
             };
             return (Order)await base.InsertGetObjAsync(fillValues);
         }
@@ -62,8 +62,8 @@ namespace DBL
             fillValues.Add("meal_id", order.MealID);
             fillValues.Add("order_date", order.OrderDate);
             fillValues.Add("delivery_date", order.DeliveryDate);
-            fillValues.Add("delivery_address", order.DeliveryAddress);
             fillValues.Add("status", order.Status);
+            fillValues.Add("address", order.DeliveryAddress);
             filterValues.Add("idOrders", order.OrderID);
             return await base.UpdateAsync(fillValues, filterValues);
         }
@@ -80,11 +80,12 @@ namespace DBL
         public async Task<List<Order>> GetOrdersByCustomerAsync(int customerId)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>()
-            {
-                { "idUsers", customerId }
-            };
+    {
+        { "customer_id", customerId }
+    };
             return (List<Order>)await SelectAllAsync(filter);
         }
+
 
         public async Task<Order> SelectByPkAsync(int orderId)
         {

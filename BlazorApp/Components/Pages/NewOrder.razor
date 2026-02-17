@@ -358,6 +358,7 @@
                 CustomerID = currentUserId,
                 ChefID = selectedChefId,
                 MealID = selectedMealId,
+                OrderDate = DateTime.Now,  
                 DeliveryDate = selectedDateTime.Value,
                 DeliveryAddress = deliveryAddress.Trim(),
                 Status = "Pending"
@@ -365,19 +366,8 @@
 
             OrderDB orderDB = new OrderDB();
 
-            // ניסיון עם InsertGetObjAsync
+            // שליחת ההזמנה למסד
             Order insertedOrder = await orderDB.InsertGetObjAsync(newOrder);
-
-            // אם זה חזר null, נסיון עם שיטה אחרת
-            if (insertedOrder == null)
-            {
-                // אולי זה ממיר ישירות בלי חזרה
-                showSuccessToast = true;
-                StateHasChanged();
-                await Task.Delay(3000);
-                Nav.NavigateTo("/MyOrders");
-                return;
-            }
 
             showSuccessToast = true;
             StateHasChanged();
@@ -388,7 +378,6 @@
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"CreateOrder error: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             errorMessage = $"שגיאה: {ex.Message}";
         }
         finally
