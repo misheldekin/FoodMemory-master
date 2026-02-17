@@ -1,5 +1,463 @@
-﻿<h3>NewOrder</h3>
+﻿@page "/CreateOrder"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage Session
+@inject NavigationManager Nav
+
+<div class="order-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">← חזרה</button>
+
+    <h2>📦 יצירת הזמנה חדשה</h2>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-alert">@errorMessage</div>
+    }
+
+    @if (showSuccessToast)
+    {
+        <div class="toast-notification">
+            <span class="toast-icon">✓</span>
+            <span class="toast-message">ההזמנה נוצרה בהצלחה!</span>
+        </div>
+    }
+
+    @if (allChefs == null || allMeals == null)
+    {
+        <p class="loading">טוען נתונים...</p>
+    }
+    else
+    {
+        <div class="form-card">
+            <!-- בחירת שף -->
+            <div class="form-group">
+                <label>בחר שף</label>
+                <select class="form-select" @bind="selectedChefId">
+                    <option value="0">-- בחר שף --</option>
+                    @foreach (var chef in allChefs)
+                    {
+                        <option value="@chef.ChefID">@chef.FirstName @chef.LastName - ⭐ @chef.Rating.ToString("F1")</option>
+                    }
+                </select>
+                @if (selectedChefId > 0)
+                {
+                    <div class="chef-details">
+                        <p class="chef-info">@GetChefDetails()</p>
+                    </div>
+                }
+            </div>
+
+            <!-- בחירת ארוחה -->
+            <div class="form-group">
+                <label>בחר ארוחה</label>
+                <select class="form-select" @bind="selectedMealId">
+                    <option value="0">-- בחר ארוחה --</option>
+                    @foreach (var meal in allMeals)
+                    {
+                        <option value="@meal.mealID">@meal.name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- תאריך הזמנה -->
+            <div class="form-group">
+                <label>תאריך וזמן הזמנה</label>
+                <input type="datetime-local" class="form-input" @bind="deliveryDateTime" />
+                @if (IsDateInPast())
+                {
+                    <p class="warning-text">⚠️ יש לבחור תאריך עתידי</p>
+                }
+            </div>
+
+            <!-- כתובת -->
+            <div class="form-group">
+                <label>כתובת משלוח</label>
+                <textarea class="form-textarea" @bind="deliveryAddress" placeholder="הכנס את כתובת המשלוח המלאה..."></textarea>
+            </div>
+
+            <!-- כפתורים -->
+            <div class="action-buttons">
+                <button class="btn-cancel" @onclick="GoBack">ביטול</button>
+                @if (isSubmitting)
+                {
+                    <button class="btn-submit" disabled>שומר...</button>
+                }
+                else
+                {
+                    <button class="btn-submit" @onclick="CreateOrder">📦 צור הזמנה</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Rubik', 'Assistant', sans-serif;
+        box-sizing: border-box;
+    }
+
+    .order-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+        direction: rtl;
+        position: relative;
+    }
+
+    .back-btn {
+        position: absolute;
+        top: 0;
+        right: 20px;
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(65, 72, 51, 0.3);
+        transition: all 0.3s ease;
+        z-index: 100;
+    }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(65, 72, 51, 0.4);
+        }
+
+    h2 {
+        text-align: center;
+        color: #414833;
+        font-size: 2.5rem;
+        margin: 50px 0 30px 0;
+    }
+
+    .loading {
+        text-align: center;
+        color: #737A5D;
+        font-size: 1.2rem;
+    }
+
+    .error-alert {
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        text-align: center;
+        background: #ffe6e6;
+        border: 2px solid #ff4444;
+        color: #cc0000;
+    }
+
+    .toast-notification {
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        box-shadow: 0 10px 30px rgba(65, 72, 51, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 1000;
+        animation: slideDown 0.4s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .toast-icon {
+        background: white;
+        color: #737A5D;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    @@keyframes slideDown {
+        from {
+            transform: translateX(-50%) translateY(-100px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+        }
+    }
+
+    .form-card {
+        background: rgba(235, 227, 210, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 15px 40px rgba(65, 72, 51, 0.15);
+        border: 2px solid rgba(164, 172, 134, 0.3);
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    label {
+        display: block;
+        color: #414833;
+        font-weight: 600;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+    }
+
+    .form-select, .form-input, .form-textarea {
+        width: 100%;
+        padding: 12px 18px;
+        border: 2px solid #A4AC86;
+        border-radius: 12px;
+        font-size: 1rem;
+        background: white;
+        transition: all 0.3s ease;
+        direction: rtl;
+    }
+
+        .form-select:focus, .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #737A5D;
+            box-shadow: 0 0 0 4px rgba(115, 122, 93, 0.2);
+        }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .chef-details {
+        margin-top: 12px;
+        padding: 15px;
+        background: rgba(115, 122, 93, 0.1);
+        border-radius: 10px;
+        border-right: 4px solid #737A5D;
+    }
+
+    .chef-info {
+        margin: 0;
+        color: #414833;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .warning-text {
+        color: #d97706;
+        font-size: 0.9rem;
+        margin-top: 8px;
+        font-weight: 500;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        justify-content: center;
+    }
+
+    .btn-submit, .btn-cancel {
+        padding: 15px 40px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        box-shadow: 0 6px 18px rgba(65, 72, 51, 0.35);
+    }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(65, 72, 51, 0.45);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    .btn-cancel {
+        background: #e0e0e0;
+        color: #555;
+    }
+
+        .btn-cancel:hover {
+            background: #d0d0d0;
+        }
+
+    @@media (max-width: 768px) {
+        .back-btn {
+            position: static;
+            display: block;
+            margin: 0 auto 20px;
+            width: fit-content;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+    }
+</style>
 
 @code {
+    List<Chef> allChefs;
+    List<Meals> allMeals;
 
+    int selectedChefId = 0;
+    int selectedMealId = 0;
+    string deliveryAddress = "";
+    DateTime deliveryDateTime = DateTime.Now.AddDays(1);
+    string errorMessage = "";
+    bool showSuccessToast = false;
+    bool isSubmitting = false;
+    int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ProtectedBrowserStorageResult<int> userIdResult = await Session.GetAsync<int>("customerid");
+        if (!userIdResult.Success)
+        {
+            Nav.NavigateTo("/Login");
+            return;
+        }
+
+        currentUserId = userIdResult.Value;
+
+        ChefDB chefDB = new ChefDB();
+        allChefs = await chefDB.GetAllAsync();
+
+        MealsDB mealsDB = new MealsDB();
+        allMeals = await mealsDB.GetMealsByUserAsync(currentUserId);
+
+        if (allMeals == null)
+        {
+            allMeals = new List<Meals>();
+        }
+    }
+
+    string GetChefDetails()
+    {
+        Chef selectedChef = null;
+        foreach (var chef in allChefs)
+        {
+            if (chef.ChefID == selectedChefId)
+            {
+                selectedChef = chef;
+                break;
+            }
+        }
+
+        if (selectedChef == null)
+            return "";
+
+        return $"👨‍🍳 {selectedChef.FirstName} {selectedChef.LastName}\n{selectedChef.YearsOfExperience} שנות ניסיון\n📞 {selectedChef.PhoneNumber}";
+    }
+
+    bool IsDateInPast()
+    {
+        return deliveryDateTime < DateTime.Now;
+    }
+
+    async Task CreateOrder()
+    {
+        errorMessage = "";
+        showSuccessToast = false;
+
+        if (selectedChefId <= 0)
+        {
+            errorMessage = "נא לבחור שף";
+            return;
+        }
+
+        if (selectedMealId <= 0)
+        {
+            errorMessage = "נא לבחור ארוחה";
+            return;
+        }
+
+        if (IsDateInPast())
+        {
+            errorMessage = "יש לבחור תאריך עתידי";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(deliveryAddress))
+        {
+            errorMessage = "נא להזין כתובת משלוח";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            Order newOrder = new Order();
+            newOrder.CustomerID = currentUserId;
+            newOrder.ChefID = selectedChefId;
+            newOrder.MealID = selectedMealId;
+            newOrder.DeliveryDate = deliveryDateTime;
+            newOrder.DeliveryAddress = deliveryAddress.Trim();
+            newOrder.Status = "Pending";
+            newOrder.OrderDate = DateTime.Now;
+
+            OrderDB orderDB = new OrderDB();
+            Order result = await orderDB.InsertGetObjAsync(newOrder);
+
+            if (result != null)
+            {
+                showSuccessToast = true;
+                StateHasChanged();
+
+                await Task.Delay(2000);
+                Nav.NavigateTo("/MyOrders");
+            }
+            else
+            {
+                errorMessage = "שגיאה בשמירת ההזמנה";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"שגיאה: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/MyOrders");
+    }
 }
