@@ -15,6 +15,7 @@ namespace Models
         public string CustomerName { get; set; }
         public string ChefName { get; set; }
         public string MealName { get; set; }
+        public bool IsRated { get; set; }
 
         public Order() { }
 

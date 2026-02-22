@@ -113,5 +113,16 @@ namespace DBL
             filterValues.Add("idOrders", orderId);
             return await base.DeleteAsync(filterValues);
         }
+
+        public async Task<int> MarkAsRatedAsync(int orderId)
+        {
+            Dictionary<string, object> fillValues = new Dictionary<string, object>();
+            Dictionary<string, object> filterValues = new Dictionary<string, object>();
+
+            fillValues.Add("isRated", 1);
+            filterValues.Add("order_id", orderId);
+
+            return await base.UpdateAsync(fillValues, filterValues);
+        }
     }
 }
