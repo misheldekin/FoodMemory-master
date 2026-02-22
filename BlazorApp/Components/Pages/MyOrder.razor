@@ -6,7 +6,6 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-
 <div class="page-container" dir="rtl">
     <button class="back-btn" @onclick="GoBack">← חזרה</button>
 
@@ -95,6 +94,14 @@
                             {
                                 <button class="btn-cancel" @onclick="@(() => CancelOrder(order.OrderID))">
                                     ❌ בטל הזמנה
+                                </button>
+                            }
+
+                            @* כפתור דירוג שף *@
+                            @if (CanRateOrder(order))
+                            {
+                                <button class="btn-rate" @onclick="@(() => RateChefOrder(order.OrderID))">
+                                    ⭐ דרג את השף
                                 </button>
                             }
                         </div>
@@ -323,7 +330,7 @@
         margin-top: 15px;
     }
 
-    .btn-view, .btn-cancel {
+    .btn-view, .btn-cancel, .btn-rate {
         flex: 1;
         padding: 10px;
         border: none;
@@ -351,6 +358,16 @@
 
         .btn-cancel:hover {
             background: #c0392b;
+        }
+
+    .btn-rate {
+        background: #f1c40f;
+        color: white;
+    }
+
+        .btn-rate:hover {
+            background: #d4ac0d;
+            transform: translateY(-2px);
         }
 
     @@media (max-width: 768px) {
@@ -499,5 +516,16 @@
     {
         Nav.NavigateTo("/AfterLog");
     }
-}
 
+    // בדיקה אם ניתן לדרג את השף
+    bool CanRateOrder(Order order)
+    {
+        return order.Status == "Completed" && (DateTime.Now - order.DeliveryDate).TotalDays >= 1;
+    }
+
+    // מעבר לדף דירוג השף
+    void RateChefOrder(int orderId)
+    {
+        Nav.NavigateTo($"/RateChef/{orderId}");
+    }
+}

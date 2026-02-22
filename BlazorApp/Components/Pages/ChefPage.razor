@@ -1,0 +1,105 @@
+﻿@page "/ChefDetails/{ChefId:int}"
+@using Models
+@using DBL
+@inject NavigationManager Nav
+
+<div class="chef-details-page">
+    <button class="back-btn" @onclick="GoBack">← חזרה</button>
+
+    @if (chef == null)
+    {
+        <p>טוען את פרטי השף...</p>
+    }
+    else
+    {
+        <div class="chef-card-full">
+            <div class="chef-image-container">
+                <img src="@chef.ProfileImage" alt="שף @chef.FirstName" class="chef-image" />
+            </div>
+
+            <div class="chef-info-full">
+                <h1>@chef.FirstName @chef.LastName</h1>
+                <p><strong>דואר אלקטרוני:</strong> @chef.Email</p>
+                <p><strong>טלפון:</strong> @chef.PhoneNumber</p>
+                <p><strong>ניסיון:</strong> @chef.YearsOfExperience שנים</p>
+                <p><strong>אודות השף:</strong> @chef.Bio</p>
+                <p><strong>דירוג ממוצע:</strong> ⭐ @chef.Rating / 5</p>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .chef-details-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        direction: rtl;
+        font-family: 'Rubik', sans-serif;
+    }
+
+    .back-btn {
+        background: linear-gradient(135deg, #737A5D 0%, #414833 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .chef-card-full {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        overflow: hidden;
+        padding: 20px;
+    }
+
+    .chef-image-container {
+        width: 100%;
+        max-height: 400px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .chef-image {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+
+    .chef-info-full h1 {
+        margin-bottom: 15px;
+        color: #414833;
+    }
+
+    .chef-info-full p {
+        margin: 8px 0;
+        font-size: 1.1em;
+    }
+
+    .chef-info-full strong {
+        color: #737A5D;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int ChefId { get; set; }
+
+    private Chef chef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ChefDB chefDB = new ChefDB();
+        chef = await chefDB.SelectByPkAsync(ChefId);
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/AfterLog");
+    }
+}
+

@@ -1,0 +1,158 @@
+﻿@page "/RateChef/{OrderId:int}"
+@using Models
+@using DBL
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="rating-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">← חזרה להזמנות שלי</button>
+
+    @if (isLoading)
+    {
+        <p>טוען פרטי ההזמנה...</p>
+    }
+    else if (order == null)
+    {
+        <p class="error-text">לא נמצאה ההזמנה או לא ניתן לדרג אותה.</p>
+    }
+    else
+    {
+        <h2>דרג את השף שלך: @order.ChefName</h2>
+
+        <div class="stars">
+            @for (int i = 1; i <= 5; i++)
+            {
+                <span class="star @(i <= selectedScore ? "filled" : "")"
+                      @onclick="() => SelectScore(i)">★</span>
+            }
+        </div>
+
+        <button class="btn-submit" @onclick="SubmitRating" disabled="@(selectedScore == 0)">
+            שלח דירוג
+        </button>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <p class="status-msg">@message</p>
+        }
+    }
+</div>
+
+<style>
+    .rating-container {
+        max-width: 500px;
+        margin: 50px auto;
+        text-align: center;
+        font-family: 'Assistant', sans-serif;
+    }
+
+    .back-btn {
+        background: none;
+        border: none;
+        color: #e67e22;
+        font-weight: 600;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+
+    .stars {
+        font-size: 2rem;
+        margin: 20px 0;
+    }
+
+    .star {
+        cursor: pointer;
+        color: #ccc;
+        transition: color 0.2s;
+    }
+
+        .star.filled {
+            color: #f39c12;
+        }
+
+    .btn-submit {
+        background: #e67e22;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        .btn-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+    .status-msg {
+        margin-top: 15px;
+        font-weight: 600;
+        color: green;
+    }
+
+    .error-text {
+        color: red;
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int OrderId { get; set; }
+
+    private Order order;
+    private bool isLoading = true;
+    private int selectedScore = 0;
+    private string message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        OrderDB orderDB = new OrderDB();
+        order = await orderDB.SelectByPkAsync(OrderId);
+
+        if (order != null)
+        {
+            // בדיקה: ההזמנה אושרה והושלמה לפחות יום אחרי ההזמנה
+            if (order.Status != "Completed" || (DateTime.Now - order.DeliveryDate).TotalDays < 1)
+            {
+                order = null; // לא ניתן לדרג עדיין
+            }
+            else
+            {
+                ChefDB chefDB = new ChefDB();
+                Chef chef = await chefDB.SelectByPkAsync(order.ChefID);
+                order.ChefName = chef != null ? chef.FirstName + " " + chef.LastName : "לא נמצא";
+            }
+        }
+
+        isLoading = false;
+    }
+
+    void SelectScore(int score)
+    {
+        selectedScore = score;
+    }
+
+    async Task SubmitRating()
+    {
+        if (selectedScore == 0) return;
+
+        ChefDB chefDB = new ChefDB();
+        int result = await chefDB.UpdateRatingAsync(order.ChefID, selectedScore);
+
+        if (result > 0)
+        {
+            message = $"תודה! דירוג של {selectedScore} נקלט בהצלחה.";
+        }
+        else
+        {
+            message = "אירעה שגיאה, נסה שוב.";
+        }
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/MyOrders");
+    }
+}

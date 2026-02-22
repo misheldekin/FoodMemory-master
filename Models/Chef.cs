@@ -12,6 +12,8 @@
         public string Bio { get; set; }
         public double Rating { get; set; }
         public string ProfileImage { get; set; }
+        public int RatingCount { get; set; }
+
 
         public Chef() { }
 

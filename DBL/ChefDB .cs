@@ -32,6 +32,8 @@ namespace DBL
             chef.Bio = row[7].ToString();
             chef.Rating = double.Parse(row[8].ToString());
             chef.ProfileImage = row[9].ToString();
+            chef.RatingCount = int.Parse(row[10].ToString());  
+
             return chef;
         }
 
@@ -100,5 +102,32 @@ namespace DBL
             else
                 return null;
         }
+
+        public async Task<int> UpdateRatingAsync(int chefId, int newScore)
+        {
+            Chef chef = await SelectByPkAsync(chefId);
+
+            if (chef == null)
+                return 0;
+
+            double currentRating = chef.Rating;
+            int ratingCount = chef.RatingCount;
+
+            double newAverage =
+                ((currentRating * ratingCount) + newScore) / (ratingCount + 1);
+
+            int newCount = ratingCount + 1;
+
+            Dictionary<string, object> fillValues = new Dictionary<string, object>();
+            Dictionary<string, object> filterValues = new Dictionary<string, object>();
+
+            fillValues.Add("rating", newAverage);
+            fillValues.Add("rating_count", newCount);
+
+            filterValues.Add("chef_id", chefId);
+
+            return await base.UpdateAsync(fillValues, filterValues);
+        }
+
     }
 }

@@ -101,7 +101,7 @@
                         @for (int j = i; j < i + 6 && j < chefs.Count; j++)
                         {
                             int currentIndex = j;
-                            <div class="chef-card-link" @onclick="@(() => GoToChefs())">
+                            <div class="chef-card-link" style="cursor:pointer" @onclick="@(() => GoToChefs(chefs[currentIndex].ChefID))">
                                 <div class="chef-card">
                                     <img src="@(string.IsNullOrWhiteSpace(chefs[currentIndex].ProfileImage) ? "/images/defultpic.jpg" : chefs[currentIndex].ProfileImage)" alt="@chefs[currentIndex].FirstName">
                                     <div class="chef-info-card">
@@ -606,9 +606,9 @@
         navigationManager.NavigateTo("/makeRecipe");
     }
 
-    private void GoToChefs()
+    private void GoToChefs(int chefId)
     {
-        navigationManager.NavigateTo("/Chefs");
+        navigationManager.NavigateTo($"/ChefDetails/{chefId}");
     }
 
     private void GoToProfile()
