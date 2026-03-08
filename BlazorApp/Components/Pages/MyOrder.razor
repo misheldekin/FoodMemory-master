@@ -421,7 +421,16 @@
             Orders = new List<Order>();
         }
 
-        FilterOrders("All");
+        for (int i = 0; i < Orders.Count; i++)
+        {
+            if (Orders[i].Status == "Approved" && DateTime.Now > Orders[i].DeliveryDate)
+            {
+                await orderDB.UpdateStatusAsync(Orders[i].OrderID, "Completed");
+                Orders[i].Status = "Completed";
+            }
+        }
+
+        FilterOrders(SelectedFilter); 
     }
 
     void FilterOrders(string status)
@@ -520,7 +529,7 @@
     // בדיקה אם ניתן לדרג את השף
     bool CanRateOrder(Order order)
     {
-        return order.Status == "Completed" && (DateTime.Now - order.DeliveryDate).TotalDays >= 1;
+        return order.Status == "Completed" && !order.IsRated;
     }
 
     // מעבר לדף דירוג השף

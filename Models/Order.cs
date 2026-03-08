@@ -21,7 +21,7 @@ namespace Models
 
         public Order(int orderID, int customerID, int chefID, int mealID,
                     DateTime orderDate, DateTime deliveryDate, string deliveryAddress,
-                    string status)
+                    string status, bool IsRated)
         {
             this.OrderID = orderID;
             this.CustomerID = customerID;
@@ -31,6 +31,7 @@ namespace Models
             this.DeliveryDate = deliveryDate;
             this.DeliveryAddress = deliveryAddress;
             this.Status = status;
+            this.IsRated = IsRated;
         }
     }
 }
