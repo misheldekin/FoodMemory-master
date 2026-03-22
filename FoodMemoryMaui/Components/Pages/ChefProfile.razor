@@ -1,0 +1,556 @@
+﻿@page "/ChefProfile"
+@using Models
+@using DBL
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager Nav
+
+<div class="profile-container" dir="rtl">
+    <button class="back-btn" @onclick="GoBack">← חזרה לדשבורד</button>
+
+    @if (IsLoading)
+    {
+        <div class="loading">טוען פרופיל...</div>
+    }
+    else if (Chef == null)
+    {
+        <div class="error">לא ניתן לטעון את הפרופיל</div>
+    }
+    else
+    {
+        <div class="profile-card">
+            <div class="profile-header">
+                <h1>📋 פרופיל שלי</h1>
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">⚠️ @ErrorMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(SuccessMessage))
+            {
+                <div class="success-message">✅ @SuccessMessage</div>
+            }
+
+            <div class="profile-section">
+                <h3>📸 תמונת פרופיל</h3>
+                <div class="profile-image-container">
+                    <img src="@(string.IsNullOrEmpty(Chef.ProfileImage) ? "/images/defultpic.jpg" : Chef.ProfileImage)"
+                         alt="תמונת פרופיל" class="profile-image" />
+                </div>
+                <div class="image-upload-section">
+                    <InputFile OnChange="HandleProfileImageUpload" accept="image/*" class="file-input" />
+                    <p class="upload-note">גודל מקסימלי: 8MB</p>
+                    @if (!string.IsNullOrEmpty(ImageMessage))
+                    {
+                        <p class="image-message @ImageMessageClass">@ImageMessage</p>
+                    }
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h3>🔧 פרטים אישיים</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>שם:</label>
+                        <input type="text" @bind="Chef.FirstName" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>שם משפחה:</label>
+                        <input type="text" @bind="Chef.LastName" class="form-input" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>דוא"ל:</label>
+                    <input type="email" @bind="Chef.Email" class="form-input" />
+                </div>
+                <div class="form-group">
+                    <label>מס' טלפון:</label>
+                    <input type="tel" @bind="Chef.PhoneNumber" class="form-input" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>שנות ניסיון:</label>
+                        <input type="number" @bind="Chef.YearsOfExperience" min="0" max="70" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>דירוג:</label>
+                        <div class="rating-display">⭐ @Chef.Rating.ToString("F1")</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>ביו:</label>
+                    <textarea @bind="Chef.Bio" class="form-textarea" rows="4" placeholder="ספר קצת על עצמך..."></textarea>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" @onclick="SaveProfile" disabled="@IsUpdating">
+                    @(IsUpdating ? "⏳ שומר..." : "💾 שמור שינויים")
+                </button>
+                <button class="btn btn-secondary" @onclick="ChangePassword">🔐 שנה סיסמה</button>
+            </div>
+        </div>
+
+        @if (ShowPasswordModal)
+        {
+            <div class="modal-overlay" @onclick="ClosePasswordModal">
+                <div class="modal" @onclick:stopPropagation="true">
+                    <div class="modal-header">
+                        <h3>🔐 שנה סיסמה</h3>
+                        <button class="close-btn" @onclick="ClosePasswordModal">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>סיסמה ישנה:</label>
+                            <input type="password" @bind="OldPassword" class="form-input" placeholder="הכנס סיסמה ישנה" />
+                        </div>
+                        <div class="form-group">
+                            <label>סיסמה חדשה:</label>
+                            <input type="password" @bind="NewPassword" class="form-input" placeholder="הכנס סיסמה חדשה" />
+                        </div>
+                        <div class="form-group">
+                            <label>אישור סיסמה חדשה:</label>
+                            <input type="password" @bind="ConfirmPassword" class="form-input" placeholder="אשר סיסמה חדשה" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(PasswordErrorMessage))
+                        {
+                            <div class="error-message">⚠️ @PasswordErrorMessage</div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="UpdatePassword" disabled="@IsUpdating">עדכן סיסמה</button>
+                        <button class="btn btn-secondary" @onclick="ClosePasswordModal">ביטול</button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .profile-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        min-height: 100vh;
+        font-family: 'Assistant', sans-serif;
+    }
+
+    .back-btn {
+        background: #999;
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+    }
+
+        .back-btn:hover {
+            background: #777;
+        }
+
+    .loading, .error {
+        text-align: center;
+        padding: 40px;
+        font-size: 1.2rem;
+        color: #666;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .profile-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 20px;
+    }
+
+        .profile-header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2rem;
+        }
+
+    .profile-section {
+        margin-bottom: 30px;
+    }
+
+        .profile-section h3 {
+            color: #667eea;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+    .profile-image-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .profile-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #667eea;
+        box-shadow: 0 6px 15px rgba(102,126,234,0.3);
+    }
+
+    .image-upload-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background: #f5f7ff;
+        border-radius: 12px;
+        border: 2px dashed #667eea;
+    }
+
+    .file-input {
+        padding: 10px 15px;
+        border: 2px solid #667eea;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .upload-note {
+        font-size: 0.85rem;
+        color: #999;
+        margin: 0;
+    }
+
+    .image-message {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin: 0;
+    }
+
+        .image-message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+
+        .image-message.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+        }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Assistant', sans-serif;
+        direction: rtl;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+    }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+    .rating-display {
+        padding: 12px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        color: #333;
+    }
+
+    .error-message {
+        background: #ffebee;
+        color: #c62828;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #ef5350;
+    }
+
+    .success-message {
+        background: #e8f5e9;
+        color: #2e7d32;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #4caf50;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        flex: 1;
+    }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+        flex: 1;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 15px;
+    }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .modal-body {
+        margin-bottom: 20px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+    }
+
+        .modal-footer .btn {
+            flex: 1;
+        }
+
+    @@media (max-width: 768px) {
+        .profile-card {
+            padding: 20px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+    }
+</style>
+
+@code {
+    private Chef Chef;
+    private bool IsLoading = true;
+    private bool IsUpdating = false;
+    private bool ShowPasswordModal = false;
+    private string ErrorMessage = "";
+    private string SuccessMessage = "";
+    private string PasswordErrorMessage = "";
+    private string ImageMessage = "";
+    private string ImageMessageClass = "";
+    private string OldPassword = "";
+    private string NewPassword = "";
+    private string ConfirmPassword = "";
+    private long maxFileSize = 8 * 1024 * 1024;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // MAUI: קריאת chefid מ-Preferences
+            int chefId = Preferences.Get("chefid", 0);
+            if (chefId == 0)
+            {
+                Nav.NavigateTo("/ChefLogin");
+                return;
+            }
+
+            ChefDB chefDB = new ChefDB();
+            Chef = await chefDB.SelectByPkAsync(chefId);
+
+            if (Chef == null) Nav.NavigateTo("/ChefLogin");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"שגיאה בטעינת הפרופיל: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    async Task HandleProfileImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            ImageMessage = "";
+            IBrowserFile file = e.File;
+
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                ImageMessage = "אנא בחר קובץ תמונה בלבד";
+                ImageMessageClass = "error";
+                return;
+            }
+
+            if (file.Size > maxFileSize)
+            {
+                ImageMessage = "גודל הקובץ גדול מדי (מקסימום 8MB)";
+                ImageMessageClass = "error";
+                return;
+            }
+
+            // ב-MAUI שומרים בתיקיית AppData
+            string fileName = Path.ChangeExtension(Path.GetRandomFileName(), Path.GetExtension(file.Name));
+            string imagesPath = Path.Combine(FileSystem.AppDataDirectory, "images");
+
+            if (!Directory.Exists(imagesPath))
+                Directory.CreateDirectory(imagesPath);
+
+            string filePath = Path.Combine(imagesPath, fileName);
+
+            using (Stream stream = file.OpenReadStream(maxFileSize))
+            using (FileStream fs = File.Create(filePath))
+            {
+                await stream.CopyToAsync(fs);
+            }
+
+            Chef.ProfileImage = filePath;
+            ImageMessage = "✅ תמונה נטענה בהצלחה!";
+            ImageMessageClass = "success";
+        }
+        catch (Exception ex)
+        {
+            ImageMessage = $"שגיאה: {ex.Message}";
+            ImageMessageClass = "error";
+        }
+    }
+
+    async Task SaveProfile()
+    {
+        IsUpdating = true;
+        ErrorMessage = "";
+        SuccessMessage = "";
+        try
+        {
+            ChefDB chefDB = new ChefDB();
+            int result = await chefDB.UpdateAsync(Chef);
+            SuccessMessage = result > 0 ? "הפרופיל עודכן בהצלחה!" : "שגיאה בעדכון הפרופיל";
+            if (result > 0)
+            {
+                Preferences.Set("cheffirstname", Chef.FirstName);
+                Preferences.Set("cheflastname", Chef.LastName);
+            }
+        }
+        catch (Exception ex) { ErrorMessage = $"שגיאה: {ex.Message}"; }
+        finally { IsUpdating = false; }
+    }
+
+    void ChangePassword() { ShowPasswordModal = true; PasswordErrorMessage = ""; OldPassword = NewPassword = ConfirmPassword = ""; }
+    void ClosePasswordModal() { ShowPasswordModal = false; PasswordErrorMessage = ""; }
+
+    async Task UpdatePassword()
+    {
+        if (string.IsNullOrWhiteSpace(OldPassword) || string.IsNullOrWhiteSpace(NewPassword) || string.IsNullOrWhiteSpace(ConfirmPassword))
+        { PasswordErrorMessage = "אנא מלא את כל השדות"; return; }
+
+        if (OldPassword != Chef.Password) { PasswordErrorMessage = "הסיסמה הישנה אינה נכונה"; return; }
+        if (NewPassword != ConfirmPassword) { PasswordErrorMessage = "הסיסמאות החדשות אינן תואמות"; return; }
+        if (NewPassword.Length < 6) { PasswordErrorMessage = "הסיסמה חייבת להיות לפחות 6 תווים"; return; }
+
+        IsUpdating = true;
+        try
+        {
+            Chef.Password = NewPassword;
+            ChefDB chefDB = new ChefDB();
+            int result = await chefDB.UpdateAsync(Chef);
+            if (result > 0) { ClosePasswordModal(); SuccessMessage = "הסיסמה עודכנה בהצלחה!"; }
+            else PasswordErrorMessage = "שגיאה בעדכון הסיסמה";
+        }
+        catch (Exception ex) { PasswordErrorMessage = $"שגיאה: {ex.Message}"; }
+        finally { IsUpdating = false; }
+    }
+
+    void GoBack() => Nav.NavigateTo("/ChefDashboard");
+}
